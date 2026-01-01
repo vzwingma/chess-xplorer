@@ -647,6 +647,8 @@ function AnalyzeGames() {
                 const defenderCount = protectedInfo ? protectedInfo.defenders : 0
                 const protectionColor = protectedInfo ? protectedInfo.color : ''
                 const isKingInCheckSquare = kingInCheck && piece === `${kingInCheck}-R`
+                // Don't show under-attack styling if king is in check (show in-check styling instead)
+                const showUnderAttack = isUnderAttack && !isKingInCheckSquare
                 
                 return (
                   <div
@@ -658,7 +660,7 @@ function AnalyzeGames() {
                     } ${
                       isValidAttack ? 'valid-attack' : ''
                     } ${
-                      isUnderAttack ? `under-attack under-attack-${attackedBy}` : ''
+                      showUnderAttack ? `under-attack under-attack-${attackedBy}` : ''
                     } ${
                       isProtected ? `protected protected-${protectionColor}-${Math.min(defenderCount, 4)}` : ''
                     } ${
