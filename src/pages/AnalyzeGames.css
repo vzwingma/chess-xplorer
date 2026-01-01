@@ -94,6 +94,21 @@
   box-shadow: inset 0 0 10px rgba(255, 255, 0, 0.8);
 }
 
+.chess-square.in-check {
+  background-color: rgba(255, 0, 0, 0.7) !important;
+  animation: flashRed 1s ease-in-out infinite;
+  box-shadow: inset 0 0 20px rgba(255, 0, 0, 0.9), 0 0 20px rgba(255, 0, 0, 0.5);
+}
+
+@keyframes flashRed {
+  0%, 100% {
+    background-color: rgba(255, 0, 0, 0.7);
+  }
+  50% {
+    background-color: rgba(255, 0, 0, 0.3);
+  }
+}
+
 .chess-square.valid-move::after {
   content: '';
   position: absolute;

@@ -60,6 +60,7 @@ function AnalyzeGames() {
   const [showBlackProtection, setShowBlackProtection] = useState(false)
   const [moveHistory, setMoveHistory] = useState([])
   const [movedPieces, setMovedPieces] = useState(new Set()) // Track pieces that have moved
+  const [kingInCheck, setKingInCheck] = useState(null) // Track which king is in check ('white' or 'black' or null)
 
   // Convert piece code to readable name
   const getPieceName = (pieceCode) => {
@@ -80,6 +81,26 @@ function AnalyzeGames() {
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     const ranks = ['8', '7', '6', '5', '4', '3', '2', '1']
     return files[col] + ranks[row]
+  }
+
+  // Find king position on the board
+  const findKingPosition = (color, boardToCheck = board) => {
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = boardToCheck[row][col]
+        if (piece === `${color}-R`) {
+          return { row, col }
+        }
+      }
+    }
+    return null
+  }
+
+  // Check if a king is in check
+  const isKingInCheck = (color, boardToCheck = board) => {
+    const kingPos = findKingPosition(color, boardToCheck)
+    if (!kingPos) return false
+    return isSquareUnderAttack(kingPos.row, kingPos.col, color, boardToCheck)
   }
 
   // Helper function to check if a square is empty
@@ -366,6 +387,13 @@ function AnalyzeGames() {
       setSelectedSquare(null)
       setValidMoves([])
       
+      // Check if the opponent king is in check
+      if (isKingInCheck(newTurn, newBoard)) {
+        setKingInCheck(newTurn)
+      } else {
+        setKingInCheck(null)
+      }
+      
       // Add move to history
       const moveNumber = Math.floor(moveHistory.length / 2) + 1
       const color = currentTurn === 'white' ? '⚪' : '⚫'
@@ -451,6 +479,13 @@ function AnalyzeGames() {
       const newTurn = currentTurn === 'white' ? 'black' : 'white'
       setCurrentTurn(newTurn)
       
+      // Check if the opponent king is in check
+      if (isKingInCheck(newTurn, newBoard)) {
+        setKingInCheck(newTurn)
+      } else {
+        setKingInCheck(null)
+      }
+      
       // Add move to history
       const pieceName = getPieceName(draggedPiece)
       const fromNotation = toChessNotation(fromRow, fromCol)
@@ -504,6 +539,7 @@ function AnalyzeGames() {
     setProtectedPieces([])
     setMoveHistory([])
     setMovedPieces(new Set())
+    setKingInCheck(null)
   }
 
   // Handle toggle for white attacks
@@ -610,6 +646,7 @@ function AnalyzeGames() {
                 const isProtected = !!protectedInfo
                 const defenderCount = protectedInfo ? protectedInfo.defenders : 0
                 const protectionColor = protectedInfo ? protectedInfo.color : ''
+                const isKingInCheckSquare = kingInCheck && piece === `${kingInCheck}-R`
                 
                 return (
                   <div
@@ -624,6 +661,8 @@ function AnalyzeGames() {
                       isUnderAttack ? `under-attack under-attack-${attackedBy}` : ''
                     } ${
                       isProtected ? `protected protected-${protectionColor}-${Math.min(defenderCount, 4)}` : ''
+                    } ${
+                      isKingInCheckSquare ? 'in-check' : ''
                     }`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
