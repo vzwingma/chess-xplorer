@@ -109,7 +109,7 @@ function AnalyzeGames() {
     for (let fromRow = 0; fromRow < 8; fromRow++) {
       for (let fromCol = 0; fromCol < 8; fromCol++) {
         const piece = boardToCheck[fromRow][fromCol]
-        if (piece && piece.startsWith(color)) {
+        if (piece?.startsWith(color)) {
           // Try all possible moves
           for (let toRow = 0; toRow < 8; toRow++) {
             for (let toCol = 0; toCol < 8; toCol++) {
@@ -239,7 +239,7 @@ function AnalyzeGames() {
           const rook = boardToCheck[fromRow][rookCol]
           
           // Rook must be present and not have moved
-          if (!rook || !rook.endsWith('-T') || movedPieces.has(rookKey)) return false
+          if (!rook?.endsWith('-T') || movedPieces.has(rookKey)) return false
           
           // Path between king and rook must be clear
           const direction = isKingside ? 1 : -1
@@ -271,7 +271,7 @@ function AnalyzeGames() {
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
         const piece = boardToCheck[r][c]
-        if (piece && piece.startsWith(opponentColor)) {
+        if (piece?.startsWith(opponentColor)) {
           if (isLegalMove(piece, r, c, row, col, boardToCheck, false)) {
             return true
           }
@@ -689,6 +689,12 @@ function AnalyzeGames() {
     }
   }
 
+  const winner = checkmate === 'white' ? '⚫ Black' : '⚪ White'
+  const turnMessage = currentTurn === 'white' ? '⚪ White to move' : '⚫ Black to move'
+  const checkmateMessage = checkmate 
+    ? `🏁 CHECKMATE! ${winner} wins!`
+    : turnMessage
+
   return (
     <div className="analyze-games">
       <header className="analyze-header">
@@ -702,10 +708,7 @@ function AnalyzeGames() {
       <main className="analyze-content">
         <div className="chess-board-container">
           <div className="turn-indicator">
-            {checkmate 
-              ? `🏁 CHECKMATE! ${checkmate === 'white' ? '⚫ Black' : '⚪ White'} wins!`
-              : (currentTurn === 'white' ? '⚪ White to move' : '⚫ Black to move')
-            }
+            {checkmateMessage}
           </div>
           <div className="chess-board" style={{ backgroundImage: `url(${plateauImage})` }}>
             {board.map((row, rowIndex) => (
@@ -813,12 +816,12 @@ function AnalyzeGames() {
             <p className="placeholder">No moves yet</p>
           ) : (
             <div className="moves-container">
-              {moveHistory.map((move, index) => (
-                <div key={index} className="move-item">
-                  <span className="move-number">{move.moveNumber}.</span>
-                  <span className="move-text">{move.text}</span>
-                </div>
-              ))}
+              {moveHistory.map((move) => (
+                    <div key={`${move.moveNumber}-${move.text}`} className="move-item">
+                      <span className="move-number">{move.moveNumber}.</span>
+                      <span className="move-text">{move.text}</span>
+                    </div>
+                  ))}
             </div>
           )}
         </div>
