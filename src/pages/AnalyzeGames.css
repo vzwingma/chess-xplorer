@@ -329,7 +329,7 @@
 
 .export-btn, .import-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: #f0f0f0;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 6px;
