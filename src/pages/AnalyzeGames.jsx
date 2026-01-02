@@ -700,7 +700,7 @@ function AnalyzeGames() {
   const exportMoveHistory = () => {
     if (moveHistory.length === 0) return
     
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+    const timestamp = new Date().toISOString().replaceAll(/[:.]/g, '-').slice(0, -5)
     let content = 'Chess Game Move History\n'
     content += '======================\n'
     content += `Date: ${new Date().toLocaleString()}\n\n`
@@ -740,7 +740,7 @@ function AnalyzeGames() {
     link.download = `chess-game-${timestamp}.txt`
     document.body.appendChild(link)
     link.click()
-    document.body.removeChild(link)
+    link.remove()
     URL.revokeObjectURL(url)
   }
 
@@ -767,7 +767,7 @@ function AnalyzeGames() {
           const parsedMoves = moveLines.map((line, index, array) => {
             const match = line.match(/^(\d+(?:\.\d+)?)\.\s*(.+)$/)
             if (match) {
-              const moveNumber = parseFloat(match[1])
+              const moveNumber = Number.parseFloat(match[1])
               const text = match[2].trim()
               // Determine color from the move text
               let color = 'white'
@@ -793,12 +793,12 @@ function AnalyzeGames() {
           }
           
           const boardLines = boardSection.split('\n').filter(line => line.match(/^\d\s*\|/))
-          const newBoard = new Array(8).fill(null).map(() => new Array(8).fill(''))
+          const newBoard = new Array(8).fill('')
           
           boardLines.forEach(line => {
             const match = line.match(/^(\d)\s*\|(.+)\|\s*\d$/)
             if (match) {
-              const rank = parseInt(match[1])
+              const rank = Number.parseInt(match[1])
               const rowIndex = 8 - rank
               const squares = match[2].split('|').map(s => s.trim())
               
@@ -857,7 +857,7 @@ function AnalyzeGames() {
         }
       }
       
-      reader.readAsText(file)
+      reader.text(file)
     }
     
     input.click()
