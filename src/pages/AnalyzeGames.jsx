@@ -633,6 +633,9 @@ function AnalyzeGames() {
 
   const handleMoveClick = (index) => {
     const historyEntry = moveHistory[index]
+    // Prevent clicking on sealed moves
+    if (historyEntry.sealed) return
+    
     setBoard(historyEntry.boardState.map(row => [...row]))
     setMovedPieces(new Set(historyEntry.movedPiecesState))
     setCurrentMoveIndex(index)
@@ -761,7 +764,7 @@ function AnalyzeGames() {
             line.match(/^\d+\.\s*(.+)$/)
           )
           
-          const parsedMoves = moveLines.map(line => {
+          const parsedMoves = moveLines.map((line, index, array) => {
             const match = line.match(/^(\d+(?:\.\d+)?)\.\s*(.+)$/)
             if (match) {
               const moveNumber = parseFloat(match[1])
@@ -770,7 +773,9 @@ function AnalyzeGames() {
               let color = 'white'
               if (text.includes('⚫')) color = 'black'
               if (text.includes('CHECKMATE')) color = 'checkmate'
-              return { moveNumber, text, color }
+              // Mark all moves as sealed except the last one
+              const sealed = index < array.length - 1
+              return { moveNumber, text, color, sealed }
             }
             return null
           }).filter(move => move !== null)
@@ -788,7 +793,7 @@ function AnalyzeGames() {
           }
           
           const boardLines = boardSection.split('\n').filter(line => line.match(/^\d\s*\|/))
-          const newBoard = Array(8).fill(null).map(() => Array(8).fill(''))
+          const newBoard = new Array(8).fill(null).map(() => new Array(8).fill(''))
           
           boardLines.forEach(line => {
             const match = line.match(/^(\d)\s*\|(.+)\|\s*\d$/)
@@ -804,6 +809,12 @@ function AnalyzeGames() {
               })
             }
           })
+          
+          // Add board state to the last imported move
+          if (parsedMoves.length > 0) {
+            parsedMoves[parsedMoves.length - 1].boardState = newBoard.map(row => [...row])
+            parsedMoves[parsedMoves.length - 1].movedPiecesState = new Set()
+          }
           
           // Update state
           setBoard(newBoard)
@@ -1068,11 +1079,12 @@ function AnalyzeGames() {
             {moveHistory.map((move, index) => (
               <div 
                 key={`${move.moveNumber}-${move.text}`} 
-                className={`move-item ${index === currentMoveIndex ? 'active' : ''}`}
+                className={`move-item ${index === currentMoveIndex ? 'active' : ''} ${move.sealed ? 'sealed' : ''}`}
                 onClick={() => handleMoveClick(index)}
+                title={move.sealed ? 'Imported move (locked)' : ''}
               >
                 <span className="move-number">{move.moveNumber}.</span>
-                <span className="move-text">{move.text}</span>
+                <span className="move-text">{move.sealed ? '🔒 ' : ''}{move.text}</span>
               </div>
             ))}
           </div>
