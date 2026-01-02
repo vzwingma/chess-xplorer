@@ -100,31 +100,12 @@
   box-shadow: inset 0 0 20px rgba(255, 0, 0, 0.9), 0 0 20px rgba(255, 0, 0, 0.5);
 }
 
-.chess-square.in-checkmate {
-  background-color: rgba(255, 0, 0, 0.9) !important;
-  border: 8px solid rgb(200, 0, 0) !important;
-  animation: pulseCheckmate 2s ease-in-out infinite;
-  box-shadow: inset 0 0 30px rgba(255, 0, 0, 1), 0 0 30px rgba(255, 0, 0, 0.8) !important;
-  z-index: 10;
-}
-
 @keyframes flashRed {
   0%, 100% {
     background-color: rgba(255, 0, 0, 0.7);
   }
   50% {
     background-color: rgba(255, 0, 0, 0.3);
-  }
-}
-
-@keyframes pulseCheckmate {
-  0%, 100% {
-    background-color: rgba(255, 0, 0, 0.95);
-    box-shadow: inset 0 0 30px rgba(255, 0, 0, 1), 0 0 30px rgba(255, 0, 0, 0.8);
-  }
-  50% {
-    background-color: rgba(220, 0, 0, 0.85);
-    box-shadow: inset 0 0 40px rgba(255, 0, 0, 1), 0 0 40px rgba(255, 0, 0, 1);
   }
 }
 
@@ -254,14 +235,14 @@
 
 .files {
   font-size: 0.96rem;
-  letter-spacing: 4.32rem;
-  padding-left: 2.88rem;
+  letter-spacing: 3.2rem;
+  padding-left: 0.5rem;
   color: #aaa;
   font-weight: 600;
 }
 
 .analysis-panel {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.15);
   padding: 2rem;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -339,8 +320,8 @@
 
 .toggle-btn {
   width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 0.8rem 1rem;
   border-radius: 6px;
@@ -362,11 +343,6 @@
   box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
 }
 
-.placeholder {
-  color: #666;
-  font-style: italic;
-}
-
 @media (max-width: 1200px) {
   .chess-board {
     grid-template-columns: repeat(8, 80px);
@@ -378,9 +354,10 @@
   }
   
   .files {
-    letter-spacing: 3.04rem;
+    letter-spacing: 2.04rem;
     padding-left: 2.08rem;
     font-size: 0.8rem;
+    color: #b10b0b;
   }
 }
 
