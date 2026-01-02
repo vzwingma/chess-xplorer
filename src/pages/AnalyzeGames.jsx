@@ -808,22 +808,35 @@ function AnalyzeGames() {
           // Update state
           setBoard(newBoard)
           setMoveHistory(parsedMoves)
-          setCurrentTurn('white') // Reset to white's turn
           setSelectedSquare(null)
           setValidMoves([])
           setAttackedPieces([])
           setProtectedPieces([])
           setMovedPieces(new Set()) // Reset moved pieces
           setKingInCheck(null)
+          setCurrentMoveIndex(parsedMoves.length - 1)
           
-          // Check if the last move was checkmate
+          // Determine whose turn it is based on the last move
           const lastMove = parsedMoves[parsedMoves.length - 1]
           if (lastMove?.color === 'checkmate') {
+            // Game is over, keep the turn as it was
             const checkmatedColor = lastMove.text.includes('White wins') ? 'black' : 'white'
             setCheckmate(checkmatedColor)
             setKingInCheck(checkmatedColor)
+            // Set turn to the winner (who made the last move before checkmate)
+            const lastMoveColor = parsedMoves[parsedMoves.length - 2]?.color || 'white'
+            setCurrentTurn(lastMoveColor === 'white' ? 'black' : 'white')
           } else {
             setCheckmate(null)
+            // Determine next turn: if last move was by white, it's black's turn and vice versa
+            if (lastMove?.color === 'white') {
+              setCurrentTurn('black')
+            } else if (lastMove?.color === 'black') {
+              setCurrentTurn('white')
+            } else {
+              // If no moves, white starts
+              setCurrentTurn('white')
+            }
           }
           
           alert('Game loaded successfully!')
