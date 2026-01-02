@@ -66,15 +66,15 @@ function AnalyzeGames() {
   // Convert piece code to readable name
   const getPieceName = (pieceCode) => {
     const pieceType = pieceCode.split('-')[1]
-    const pieceNames = {
-      'p': 'Pawn',
-      'T': 'Rook',
-      'C': 'Knight',
-      'F': 'Bishop',
-      'Q': 'Queen',
-      'R': 'King'
+    const pieceIcons = {
+      'p': '♟',
+      'T': '♜',
+      'C': '♞',
+      'F': '♝',
+      'Q': '♛',
+      'R': '♚'
     }
-    return pieceNames[pieceType] || ''
+    return pieceIcons[pieceType] || ''
   }
 
   // Convert row/col to chess notation (e.g., e2, e4)
