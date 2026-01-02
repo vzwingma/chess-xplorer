@@ -470,11 +470,19 @@
   background-color: white;
   border-left: 4px solid #ddd;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .move-item:hover {
   background-color: #f0f0f0;
   transform: translateX(4px);
+  border-left-color: #667eea;
+}
+
+.move-item.active {
+  background-color: #e3f2fd;
+  border-left-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .move-number {

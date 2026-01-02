@@ -58,10 +58,11 @@ function AnalyzeGames() {
   const [protectedPieces, setProtectedPieces] = useState([])
   const [showWhiteProtection, setShowWhiteProtection] = useState(false)
   const [showBlackProtection, setShowBlackProtection] = useState(false)
-  const [moveHistory, setMoveHistory] = useState([])
+  const [moveHistory, setMoveHistory] = useState([{ moveNumber: 0, text: 'Initial position', color: 'white', boardState: initialBoardState, movedPiecesState: new Set() }])
   const [movedPieces, setMovedPieces] = useState(new Set()) // Track pieces that have moved
   const [kingInCheck, setKingInCheck] = useState(null) // Track which king is in check ('white' or 'black' or null)
   const [checkmate, setCheckmate] = useState(null) // Track checkmate ('white' or 'black' or null)
+  const [currentMoveIndex, setCurrentMoveIndex] = useState(0) // Track current position in history
 
   // Convert piece code to readable name
   const getPieceName = (pieceCode) => {
@@ -445,8 +446,11 @@ function AnalyzeGames() {
       setSelectedSquare(null)
       setValidMoves([])
       
+      // Truncate history if we're making a move from a previous position
+      const truncatedHistory = moveHistory.slice(0, currentMoveIndex + 1)
+      
       // Add move to history
-      const moveNumber = Math.floor(moveHistory.length / 2) + 1
+      const moveNumber = Math.floor(truncatedHistory.length / 2) + 1
       const color = currentTurn === 'white' ? '⚪' : '⚫'
       const pieceName = getPieceName(piece)
       const from = toChessNotation(fromRow, fromCol)
@@ -459,10 +463,15 @@ function AnalyzeGames() {
         setCheckmate(newTurn)
         setKingInCheck(newTurn)
         // Add checkmate to move history
-        setMoveHistory([...moveHistory, { moveNumber, text: moveText, color: currentTurn }, 
-                        { moveNumber: moveNumber + 0.5, text: `🏁 CHECKMATE! ${currentTurn === 'white' ? '⚪ White' : '⚫ Black'} wins!`, color: 'checkmate' }])
+        const newHistory = [...truncatedHistory, 
+          { moveNumber, text: moveText, color: currentTurn, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces) }, 
+          { moveNumber: moveNumber + 0.5, text: `🏁 CHECKMATE! ${currentTurn === 'white' ? '⚪ White' : '⚫ Black'} wins!`, color: 'checkmate', boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces) }]
+        setMoveHistory(newHistory)
+        setCurrentMoveIndex(newHistory.length - 1)
       } else {
-        setMoveHistory([...moveHistory, { moveNumber, text: moveText, color: currentTurn }])
+        const newHistory = [...truncatedHistory, { moveNumber, text: moveText, color: currentTurn, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces) }]
+        setMoveHistory(newHistory)
+        setCurrentMoveIndex(newHistory.length - 1)
         if (isKingInCheck(newTurn, newBoard)) {
           setKingInCheck(newTurn)
         } else {
@@ -551,6 +560,9 @@ function AnalyzeGames() {
       const newTurn = currentTurn === 'white' ? 'black' : 'white'
       setCurrentTurn(newTurn)
       
+      // Truncate history if we're making a move from a previous position
+      const truncatedHistory = moveHistory.slice(0, currentMoveIndex + 1)
+      
       // Add move to history
       const pieceName = getPieceName(draggedPiece)
       const fromNotation = toChessNotation(fromRow, fromCol)
@@ -558,8 +570,9 @@ function AnalyzeGames() {
       const moveSymbol = capturedPiece ? 'x' : '→'
       const colorSymbol = currentTurn === 'white' ? '⚪' : '⚫'
       const moveText = `${colorSymbol} ${pieceName} ${fromNotation} ${moveSymbol} ${toNotation}`
+      const moveNumber = Math.floor(truncatedHistory.length / 2) + 1
       const newMove = {
-        moveNumber: moveHistory.length + 1,
+        moveNumber: moveNumber,
         text: moveText,
         color: currentTurn
       }
@@ -569,10 +582,18 @@ function AnalyzeGames() {
         setCheckmate(newTurn)
         setKingInCheck(newTurn)
         // Add checkmate to move history
-        const checkmateMove = { moveNumber: moveHistory.length + 2, text: `🏁 CHECKMATE! ${currentTurn === 'white' ? '⚪ White' : '⚫ Black'} wins!`, color: 'checkmate' }
-        setMoveHistory([...moveHistory, newMove, checkmateMove])
+        newMove.boardState = newBoard.map(row => [...row])
+        newMove.movedPiecesState = new Set(newMovedPieces)
+        const checkmateMove = { moveNumber: moveNumber + 0.5, text: `🏁 CHECKMATE! ${currentTurn === 'white' ? '⚪ White' : '⚫ Black'} wins!`, color: 'checkmate', boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces) }
+        const newHistory = [...truncatedHistory, newMove, checkmateMove]
+        setMoveHistory(newHistory)
+        setCurrentMoveIndex(newHistory.length - 1)
       } else {
-        setMoveHistory([...moveHistory, newMove])
+        newMove.boardState = newBoard.map(row => [...row])
+        newMove.movedPiecesState = new Set(newMovedPieces)
+        const newHistory = [...truncatedHistory, newMove]
+        setMoveHistory(newHistory)
+        setCurrentMoveIndex(newHistory.length - 1)
         if (isKingInCheck(newTurn, newBoard)) {
           setKingInCheck(newTurn)
         } else {
@@ -610,6 +631,55 @@ function AnalyzeGames() {
     setDraggedFrom(null)
   }
 
+  const handleMoveClick = (index) => {
+    const historyEntry = moveHistory[index]
+    setBoard(historyEntry.boardState.map(row => [...row]))
+    setMovedPieces(new Set(historyEntry.movedPiecesState))
+    setCurrentMoveIndex(index)
+    setSelectedSquare(null)
+    setValidMoves([])
+    
+    // Determine whose turn it is based on move index (0=white, 1=black, 2=white, etc.)
+    const turn = index % 2 === 0 ? 'white' : 'black'
+    setCurrentTurn(turn)
+    
+    // Check game state
+    const restoredBoard = historyEntry.boardState
+    if (historyEntry.color === 'checkmate') {
+      const checkmatedColor = historyEntry.text.includes('White wins') ? 'black' : 'white'
+      setCheckmate(checkmatedColor)
+      setKingInCheck(checkmatedColor)
+    } else {
+      setCheckmate(null)
+      if (isKingInCheck('white', restoredBoard)) {
+        setKingInCheck('white')
+      } else if (isKingInCheck('black', restoredBoard)) {
+        setKingInCheck('black')
+      } else {
+        setKingInCheck(null)
+      }
+    }
+    
+    // Recalculate attacked and protected pieces
+    const attacks = []
+    if (showWhiteAttacks) {
+      attacks.push(...calculateAttackedPieces(restoredBoard, 'white'))
+    }
+    if (showBlackAttacks) {
+      attacks.push(...calculateAttackedPieces(restoredBoard, 'black'))
+    }
+    setAttackedPieces(attacks)
+    
+    const protections = []
+    if (showWhiteProtection) {
+      protections.push(...calculateProtectedPieces(restoredBoard, 'white'))
+    }
+    if (showBlackProtection) {
+      protections.push(...calculateProtectedPieces(restoredBoard, 'black'))
+    }
+    setProtectedPieces(protections)
+  }
+
   const resetBoard = () => {
     setBoard(initialBoardState)
     setCurrentTurn('white')
@@ -617,10 +687,11 @@ function AnalyzeGames() {
     setValidMoves([])
     setAttackedPieces([])
     setProtectedPieces([])
-    setMoveHistory([])
+    setMoveHistory([{ moveNumber: 0, text: 'Initial position', color: 'white', boardState: initialBoardState, movedPiecesState: new Set() }])
     setMovedPieces(new Set())
     setKingInCheck(null)
     setCheckmate(null)
+    setCurrentMoveIndex(0)
   }
 
   const exportMoveHistory = () => {
@@ -980,18 +1051,18 @@ function AnalyzeGames() {
 
         <div className="move-history-panel">
           <h3>Move History</h3>
-          {moveHistory.length === 0 ? (
-            <p className="placeholder">No moves yet</p>
-          ) : (
-            <div className="moves-container">
-              {moveHistory.map((move) => (
-                    <div key={`${move.moveNumber}-${move.text}`} className="move-item">
-                      <span className="move-number">{move.moveNumber}.</span>
-                      <span className="move-text">{move.text}</span>
-                    </div>
-                  ))}
-            </div>
-          )}
+          <div className="moves-container">
+            {moveHistory.map((move, index) => (
+              <div 
+                key={`${move.moveNumber}-${move.text}`} 
+                className={`move-item ${index === currentMoveIndex ? 'active' : ''}`}
+                onClick={() => handleMoveClick(index)}
+              >
+                <span className="move-number">{move.moveNumber}.</span>
+                <span className="move-text">{move.text}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </main>
     </div>
