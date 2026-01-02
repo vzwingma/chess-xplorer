@@ -615,6 +615,151 @@ function AnalyzeGames() {
     setCheckmate(null)
   }
 
+  const exportMoveHistory = () => {
+    if (moveHistory.length === 0) return
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+    let content = 'Chess Game Move History\n'
+    content += '======================\n'
+    content += `Date: ${new Date().toLocaleString()}\n\n`
+    
+    moveHistory.forEach(move => {
+      content += `${move.moveNumber}. ${move.text}\n`
+    })
+    
+    content += '\n\nFinal Board State\n'
+    content += '=================\n\n'
+    content += '    a   b   c   d   e   f   g   h\n'
+    content += '  +---+---+---+---+---+---+---+---+\n'
+    
+    // Map piece codes to unicode symbols
+    const pieceSymbols = {
+      'white-p': '♙', 'white-T': '♖', 'white-C': '♘', 'white-F': '♗', 'white-Q': '♕', 'white-R': '♔',
+      'black-p': '♟', 'black-T': '♜', 'black-C': '♞', 'black-F': '♝', 'black-Q': '♛', 'black-R': '♚'
+    }
+    
+    board.forEach((row, rowIndex) => {
+      const rank = 8 - rowIndex
+      content += `${rank} |`
+      row.forEach(piece => {
+        const symbol = piece ? pieceSymbols[piece] || '?' : ' '
+        content += ` ${symbol} |`
+      })
+      content += ` ${rank}\n`
+      content += '  +---+---+---+---+---+---+---+---+\n'
+    })
+    
+    content += '    a   b   c   d   e   f   g   h\n'
+    
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `chess-game-${timestamp}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const importMoveHistory = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.txt'
+    
+    input.onchange = (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+      
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const content = event.target.result
+        
+        try {
+          // Parse move history
+          const historySection = content.split('Final Board State')[0]
+          const moveLines = historySection.split('\n').filter(line => 
+            line.match(/^\d+\.\s*(.+)$/)
+          )
+          
+          const parsedMoves = moveLines.map(line => {
+            const match = line.match(/^(\d+(?:\.\d+)?)\.\s*(.+)$/)
+            if (match) {
+              const moveNumber = parseFloat(match[1])
+              const text = match[2].trim()
+              // Determine color from the move text
+              let color = 'white'
+              if (text.includes('⚫')) color = 'black'
+              if (text.includes('CHECKMATE')) color = 'checkmate'
+              return { moveNumber, text, color }
+            }
+            return null
+          }).filter(move => move !== null)
+          
+          // Parse board state
+          const boardSection = content.split('Final Board State')[1]
+          if (!boardSection) {
+            alert('Could not find board state in file')
+            return
+          }
+          
+          const symbolToPiece = {
+            '♙': 'white-p', '♖': 'white-T', '♘': 'white-C', '♗': 'white-F', '♕': 'white-Q', '♔': 'white-R',
+            '♟': 'black-p', '♜': 'black-T', '♞': 'black-C', '♝': 'black-F', '♛': 'black-Q', '♚': 'black-R'
+          }
+          
+          const boardLines = boardSection.split('\n').filter(line => line.match(/^\d\s*\|/))
+          const newBoard = Array(8).fill(null).map(() => Array(8).fill(''))
+          
+          boardLines.forEach(line => {
+            const match = line.match(/^(\d)\s*\|(.+)\|\s*\d$/)
+            if (match) {
+              const rank = parseInt(match[1])
+              const rowIndex = 8 - rank
+              const squares = match[2].split('|').map(s => s.trim())
+              
+              squares.forEach((symbol, colIndex) => {
+                if (symbol && symbol !== ' ' && symbolToPiece[symbol]) {
+                  newBoard[rowIndex][colIndex] = symbolToPiece[symbol]
+                }
+              })
+            }
+          })
+          
+          // Update state
+          setBoard(newBoard)
+          setMoveHistory(parsedMoves)
+          setCurrentTurn('white') // Reset to white's turn
+          setSelectedSquare(null)
+          setValidMoves([])
+          setAttackedPieces([])
+          setProtectedPieces([])
+          setMovedPieces(new Set()) // Reset moved pieces
+          setKingInCheck(null)
+          
+          // Check if the last move was checkmate
+          const lastMove = parsedMoves[parsedMoves.length - 1]
+          if (lastMove?.color === 'checkmate') {
+            const checkmatedColor = lastMove.text.includes('White wins') ? 'black' : 'white'
+            setCheckmate(checkmatedColor)
+            setKingInCheck(checkmatedColor)
+          } else {
+            setCheckmate(null)
+          }
+          
+          alert('Game loaded successfully!')
+        } catch (error) {
+          console.error('Error parsing file:', error)
+          alert('Error loading file. Please make sure it is a valid chess game export.')
+        }
+      }
+      
+      reader.readAsText(file)
+    }
+    
+    input.click()
+  }
+
   // Handle toggle for white attacks
   const handleToggleWhiteAttacks = () => {
     const newValue = !showWhiteAttacks
@@ -776,6 +921,21 @@ function AnalyzeGames() {
           <h3>Analysis Tools</h3>
           <div className="tool-buttons">
             <button className="tool-btn">Start Analysis</button>
+            <button 
+              className="tool-btn import-btn"
+              onClick={importMoveHistory}
+              title="Import game from text file"
+            >
+              📂 Import
+            </button>
+            <button 
+              className="tool-btn export-btn"
+              onClick={exportMoveHistory}
+              disabled={moveHistory.length === 0}
+              title="Export move history to text file"
+            >
+              💾 Export
+            </button>
             <button className="tool-btn" onClick={resetBoard}>Reset Board</button>
           </div>
           <div className="attack-toggles">

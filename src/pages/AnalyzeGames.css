@@ -294,9 +294,47 @@
   height: fit-content;
 }
 
-.move-history-panel h3 {
+.move-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.5rem;
+}
+
+.move-history-panel h3 {
+  margin: 0;
   font-size: 1.5rem;
+}
+
+.history-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.export-btn, .import-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.export-btn:hover:not(:disabled), .import-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.export-btn:active:not(:disabled), .import-btn:active {
+  transform: translateY(0);
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .placeholder {
