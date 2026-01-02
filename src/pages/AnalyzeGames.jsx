@@ -313,11 +313,19 @@ function AnalyzeGames() {
   // Calculate all valid moves for a piece
   const getValidMovesForPiece = (piece, fromRow, fromCol) => {
     const moves = []
+    const color = piece.split('-')[0]
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         if (isLegalMove(piece, fromRow, fromCol, row, col)) {
           const isAttack = board[row][col] !== ''
-          moves.push({ row, col, isAttack })
+          
+          // Create a test board with the piece moved to check if it would be under attack
+          const testBoard = board.map(r => [...r])
+          testBoard[row][col] = piece
+          testBoard[fromRow][fromCol] = ''
+          const wouldBeAttacked = isSquareUnderAttack(row, col, color, testBoard)
+          
+          moves.push({ row, col, isAttack, wouldBeAttacked })
         }
       }
     }
@@ -863,6 +871,7 @@ function AnalyzeGames() {
                 const validMove = validMoves.find(m => m.row === rowIndex && m.col === colIndex)
                 const isValidMove = validMove && !validMove.isAttack
                 const isValidAttack = validMove?.isAttack
+                const wouldBeAttacked = validMove?.wouldBeAttacked
                 const attackInfo = attackedPieces.find(ap => ap.row === rowIndex && ap.col === colIndex)
                 const isUnderAttack = !!attackInfo
                 const attackedBy = attackInfo ? attackInfo.attackedBy : ''
@@ -883,7 +892,7 @@ function AnalyzeGames() {
                     className={`chess-square ${isLight ? 'light' : 'dark'} ${
                       isSelected ? 'selected' : ''
                     } ${
-                      isValidMove ? 'valid-move' : ''
+                      isValidMove ? (wouldBeAttacked ? 'valid-move-attacked' : 'valid-move') : ''
                     } ${
                       isValidAttack ? 'valid-attack' : ''
                     } ${
