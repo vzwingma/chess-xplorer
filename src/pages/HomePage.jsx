@@ -19,22 +19,12 @@ function HomePage() {
 
         <section className="features">
           <div className="feature-card" onClick={() => navigate('/analyze')}>
-            <h3>📊 Analyze Games</h3>
-            <p>Deep dive into chess games with powerful analysis tools</p>
-          </div>
-          
-          <div className="feature-card">
-            <h3>📚 Learn Openings</h3>
-            <p>Explore and master various chess openings</p>
-          </div>
-          
-          <div className="feature-card">
-            <h3>🎯 Practice Tactics</h3>
-            <p>Sharpen your skills with tactical puzzles</p>
-          </div>
+            <h3>📊 Analyze Game</h3>
+            <p>Deep dive into a chess game with powerful viewer and analysis tools</p>
+          </div>          
         </section>
 
-        <button className="cta-button">Get Started</button>
+        <button className="cta-button" onClick={() => navigate('/analyze')}>Get Started</button>
       </main>
     </div>
   )

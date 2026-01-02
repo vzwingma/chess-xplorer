@@ -929,7 +929,6 @@ function AnalyzeGames() {
         <div className="analysis-panel">
           <h3>Analysis Tools</h3>
           <div className="tool-buttons">
-            <button className="tool-btn">Start Analysis</button>
             <button 
               className="tool-btn import-btn"
               onClick={importMoveHistory}
