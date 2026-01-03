@@ -63,6 +63,8 @@ function AnalyzeGames() {
   const [protectedPieces, setProtectedPieces] = useState([])
   const [showWhiteProtection, setShowWhiteProtection] = useState(false)
   const [showBlackProtection, setShowBlackProtection] = useState(false)
+  const [flashingPieces, setFlashingPieces] = useState([])
+  const [showDefenderFlash, setShowDefenderFlash] = useState(true)
   const [moveHistory, setMoveHistory] = useState([{ moveNumber: 0, text: 'Initial position', color: PLAYER_TURN_WHITE, boardState: initialBoardState, movedPiecesState: new Set() }])
   const [movedPieces, setMovedPieces] = useState(new Set()) // Track pieces that have moved
   const [kingInCheck, setKingInCheck] = useState(null) // Track which king is in check (PLAYER_WHITE or PLAYER_BLACK or null)
@@ -361,6 +363,28 @@ function AnalyzeGames() {
     return attacked
   }
 
+  // Calculate which pieces defend a specific piece
+  const calculateDefenders = (targetRow, targetCol, boardState = board) => {
+    const targetPiece = boardState[targetRow][targetCol]
+    if (!targetPiece) return []
+    
+    const defenders = []
+    const pieceColor = targetPiece.split('-')[0]
+    
+    for (let fromRow = 0; fromRow < 8; fromRow++) {
+      for (let fromCol = 0; fromCol < 8; fromCol++) {
+        const piece = boardState[fromRow][fromCol]
+        if (piece?.startsWith(pieceColor) && !(fromRow === targetRow && fromCol === targetCol)) {
+          if (isLegalMove(piece, fromRow, fromCol, targetRow, targetCol, boardState, true)) {
+            defenders.push({ row: fromRow, col: fromCol })
+          }
+        }
+      }
+    }
+    
+    return defenders
+  }
+
   // Calculate protected pieces (defended by same color) with defender count
   const calculateProtectedPieces = (boardState, protectingColor) => {
     const protectionMap = new Map()
@@ -425,6 +449,15 @@ function AnalyzeGames() {
       const moves = getValidMovesForPiece(piece, row, col)
       setValidMoves(moves)
       setAttackedPieces([])
+      
+      // Flash defender pieces if enabled
+      if (showDefenderFlash) {
+        const defenders = calculateDefenders(row, col)
+        setFlashingPieces(defenders)
+        setTimeout(() => {
+          setFlashingPieces([])
+        }, 1000)
+      }
       return
     }
     
@@ -436,6 +469,15 @@ function AnalyzeGames() {
     const moves = getValidMovesForPiece(piece, row, col)
     setValidMoves(moves)
     setAttackedPieces([])
+    
+    // Flash defender pieces if enabled
+    if (showDefenderFlash) {
+      const defenders = calculateDefenders(row, col)
+      setFlashingPieces(defenders)
+      setTimeout(() => {
+        setFlashingPieces([])
+      }, 1000)
+    }
   }
 
   // Handle square click for moving selected piece
@@ -1051,6 +1093,7 @@ function AnalyzeGames() {
                 const showUnderAttack = isUnderAttack && !isKingInCheckSquare && !isKingInCheckmateSquare
                 // Don't show protection if king is in checkmate
                 const showProtection = isProtected && !isKingInCheckmateSquare
+                const isFlashing = flashingPieces.some(fp => fp.row === rowIndex && fp.col === colIndex)
                 
                 return (
                   <div
@@ -1067,6 +1110,8 @@ function AnalyzeGames() {
                       showProtection ? `protected protected-${protectionColor}-${Math.min(defenderCount, 4)}` : ''
                     } ${
                       isKingInCheckmateSquare ? 'in-checkmate' : (isKingInCheckSquare ? 'in-check' : '')
+                    } ${
+                      isFlashing ? 'defender-flash' : ''
                     }`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
@@ -1128,18 +1173,24 @@ function AnalyzeGames() {
             </button>
           </div>
           <div className="attack-toggles">
-            <h4>Show Protection</h4>
+            <h4>Show Protections</h4>
             <button 
               className={`toggle-btn ${showWhiteProtection ? 'active' : ''}`}
               onClick={() => handleToggleProtection(PLAYER_TURN_WHITE)}
             >
-              ⚪ White Protection: {showWhiteProtection ? 'ON' : 'OFF'}
+              ⚪ All White Protections: {showWhiteProtection ? 'ON' : 'OFF'}
             </button>
             <button 
               className={`toggle-btn ${showBlackProtection ? 'active' : ''}`}
               onClick={() => handleToggleProtection(PLAYER_TURN_BLACK)}
             >
-              ⚫ Black Protection: {showBlackProtection ? 'ON' : 'OFF'}
+              ⚫ All Black Protections: {showBlackProtection ? 'ON' : 'OFF'}
+            </button>
+            <button 
+              className={`toggle-btn ${showDefenderFlash ? 'active' : ''}`}
+              onClick={() => setShowDefenderFlash(!showDefenderFlash)}
+            >
+              ✨ Selected piece protection: {showDefenderFlash ? 'ON' : 'OFF'}
             </button>
           </div>
         </div>
