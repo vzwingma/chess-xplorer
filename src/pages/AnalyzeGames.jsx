@@ -465,6 +465,15 @@ function AnalyzeGames() {
         newBoard[fromRow][rookFromCol] = ''
       }
       
+      // Handle pawn promotion - promote to queen when reaching opposite end
+      const colorPiece = piece.split('-')[0]
+      if (pieceType === 'p') {
+        const promotionRow = colorPiece === PLAYER_TURN_WHITE ? 0 : 7
+        if (toRow === promotionRow) {
+          newBoard[toRow][toCol] = `${colorPiece}-Q`
+        }
+      }
+      
       setBoard(newBoard)
       
       // Track that this piece has moved
@@ -579,6 +588,15 @@ function AnalyzeGames() {
         const rook = newBoard[fromRow][rookFromCol]
         newBoard[fromRow][rookToCol] = rook
         newBoard[fromRow][rookFromCol] = ''
+      }
+      
+      // Handle pawn promotion - promote to queen when reaching opposite end
+      const color = draggedPiece.split('-')[0]
+      if (pieceType === 'p') {
+        const promotionRow = color === PLAYER_TURN_WHITE ? 0 : 7
+        if (toRow === promotionRow) {
+          newBoard[toRow][toCol] = `${color}-Q`
+        }
       }
       
       setBoard(newBoard)
