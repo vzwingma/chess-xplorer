@@ -642,8 +642,20 @@ function AnalyzeGames() {
     setSelectedSquare(null)
     setValidMoves([])
     
-    // Determine whose turn it is based on move index (0=white, 1=black, 2=white, etc.)
-    const turn = index % 2 === 0 ? 'white' : 'black'
+    // Determine whose turn it is: if the move was made by white, it's black's turn next
+    // For index 0 (initial position), it's white's turn
+    let turn = 'white'
+    if (index > 0) {
+      // After a move is made, it's the other player's turn
+      if (historyEntry.color === 'white') {
+        turn = 'black'
+      } else if (historyEntry.color === 'black') {
+        turn = 'white'
+      } else if (historyEntry.color === 'checkmate') {
+        // On checkmate move, keep the current turn (game is over anyway)
+        turn = historyEntry.text.includes('White wins') ? 'black' : 'white'
+      }
+    }
     setCurrentTurn(turn)
     
     // Check game state
