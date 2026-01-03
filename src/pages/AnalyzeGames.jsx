@@ -397,16 +397,41 @@ function AnalyzeGames() {
     if (checkmate) return
     
     const color = piece.split('-')[0]
-    if (color !== currentTurn) return
-
-    // If clicking the same piece, deselect
-    if (selectedSquare && selectedSquare.row === row && selectedSquare.col === col) {
-      setSelectedSquare(null)
-      setValidMoves([])
+    
+    // If there's a selected piece, check if this is a valid attack/capture move
+    if (selectedSquare) {
+      const { row: fromRow, col: fromCol } = selectedSquare
+      const selectedPiece = board[fromRow][fromCol]
+      const selectedColor = selectedPiece.split('-')[0]
+      
+      // If clicking on enemy piece, try to capture it
+      if (color !== selectedColor) {
+        handleSquareClick(row, col)
+        return
+      }
+      
+      // If clicking on same color piece
+      if (color !== currentTurn) return
+      
+      // If clicking the same piece, deselect
+      if (selectedSquare.row === row && selectedSquare.col === col) {
+        setSelectedSquare(null)
+        setValidMoves([])
+        return
+      }
+      
+      // Select different piece of same color
+      setSelectedSquare({ row, col })
+      const moves = getValidMovesForPiece(piece, row, col)
+      setValidMoves(moves)
+      setAttackedPieces([])
       return
     }
+    
+    // No piece selected yet - only select if it's the current player's piece
+    if (color !== currentTurn) return
 
-    // Select new piece and show valid moves
+    // Select piece and show valid moves
     setSelectedSquare({ row, col })
     const moves = getValidMovesForPiece(piece, row, col)
     setValidMoves(moves)
