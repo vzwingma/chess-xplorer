@@ -793,7 +793,7 @@ function AnalyzeGames() {
           }
           
           const boardLines = boardSection.split('\n').filter(line => line.match(/^\d\s*\|/))
-          const newBoard = new Array(8).fill('')
+          const newBoard = new Array(8).fill(null).map(() => new Array(8).fill(''))
           
           boardLines.forEach(line => {
             const match = line.match(/^(\d)\s*\|(.+)\|\s*\d$/)
@@ -857,7 +857,7 @@ function AnalyzeGames() {
         }
       }
       
-      reader.text(file)
+      reader.readAsText(file)
     }
     
     input.click()

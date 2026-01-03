@@ -18,10 +18,13 @@ function HomePage() {
         </section>
 
         <section className="features">
-          <div className="feature-card" onClick={() => navigate('/analyze')}>
+          <button 
+            className="feature-card" 
+            onClick={() => navigate('/analyze')}
+          >
             <h3>📊 Analyze Game</h3>
             <p>Deep dive into a chess game with powerful viewer and analysis tools</p>
-          </div>          
+          </button>          
         </section>
 
         <button className="cta-button" onClick={() => navigate('/analyze')}>Get Started</button>
