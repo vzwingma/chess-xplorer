@@ -5,7 +5,7 @@ import AnalyzeGames from './pages/AnalyzeGames'
 
 function App() {
   return (
-    <Router>
+    <Router basename="/chess-xplorer">
       <div className="App">
         <Routes>
           <Route path="/" element={<HomePage />} />
