@@ -18,6 +18,11 @@ import whiteP from '../resources/white-p.png'
 function AnalyzeGames() {
   const navigate = useNavigate()
 
+  // Constants for player colors
+  const PLAYER_TURN_WHITE = 'white'
+  const PLAYER_TURN_BLACK = 'black'
+  const PLAYER_TURN_CHECKMATE = 'checkmate'
+
   // Mapping of piece codes to images
   const pieceImages = {
     'black-T': blackT,
@@ -49,7 +54,7 @@ function AnalyzeGames() {
   const [board, setBoard] = useState(initialBoardState)
   const [draggedPiece, setDraggedPiece] = useState(null)
   const [draggedFrom, setDraggedFrom] = useState(null)
-  const [currentTurn, setCurrentTurn] = useState('white')
+  const [currentTurn, setCurrentTurn] = useState(PLAYER_TURN_WHITE)
   const [selectedSquare, setSelectedSquare] = useState(null)
   const [validMoves, setValidMoves] = useState([])
   const [attackedPieces, setAttackedPieces] = useState([])
@@ -58,10 +63,10 @@ function AnalyzeGames() {
   const [protectedPieces, setProtectedPieces] = useState([])
   const [showWhiteProtection, setShowWhiteProtection] = useState(false)
   const [showBlackProtection, setShowBlackProtection] = useState(false)
-  const [moveHistory, setMoveHistory] = useState([{ moveNumber: 0, text: 'Initial position', color: 'white', boardState: initialBoardState, movedPiecesState: new Set() }])
+  const [moveHistory, setMoveHistory] = useState([{ moveNumber: 0, text: 'Initial position', color: PLAYER_TURN_WHITE, boardState: initialBoardState, movedPiecesState: new Set() }])
   const [movedPieces, setMovedPieces] = useState(new Set()) // Track pieces that have moved
-  const [kingInCheck, setKingInCheck] = useState(null) // Track which king is in check ('white' or 'black' or null)
-  const [checkmate, setCheckmate] = useState(null) // Track checkmate ('white' or 'black' or null)
+  const [kingInCheck, setKingInCheck] = useState(null) // Track which king is in check (PLAYER_WHITE or PLAYER_BLACK or null)
+  const [checkmate, setCheckmate] = useState(null) // Track checkmate (PLAYER_WHITE or PLAYER_BLACK or null)
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0) // Track current position in history
 
   // Convert piece code to readable name
@@ -156,7 +161,7 @@ function AnalyzeGames() {
   // Helper function to check if a square has an opponent piece
   const isOpponent = (row, col, color, boardToCheck = board) => {
     if (!boardToCheck[row]?.[col]) return false
-    return boardToCheck[row][col].startsWith(color === 'white' ? 'black' : 'white')
+    return boardToCheck[row][col].startsWith(color === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE)
   }
 
   // Validate legal moves for each piece type
@@ -175,8 +180,8 @@ function AnalyzeGames() {
 
     switch (pieceType) {
       case 'p': // Pawn
-        { const direction = color === 'white' ? -1 : 1
-        const startRow = color === 'white' ? 6 : 1
+        { const direction = color === PLAYER_TURN_WHITE ? -1 : 1
+        const startRow = color === PLAYER_TURN_WHITE ? 6 : 1
         
         // Move forward one square
         if (colDiff === 0 && rowDiff === direction && isEmpty(toRow, toCol, boardToCheck)) {
@@ -268,7 +273,7 @@ function AnalyzeGames() {
 
   // Check if a square is under attack by opponent
   const isSquareUnderAttack = (row, col, color, boardToCheck = board) => {
-    const opponentColor = color === 'white' ? 'black' : 'white'
+    const opponentColor = color === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
         const piece = boardToCheck[r][c]
@@ -451,7 +456,7 @@ function AnalyzeGames() {
       
       // Add move to history
       const moveNumber = Math.floor(truncatedHistory.length / 2) + 1
-      const color = currentTurn === 'white' ? '⚪' : '⚫'
+      const color = currentTurn === PLAYER_TURN_WHITE ? '⚪' : '⚫'
       const pieceName = getPieceName(piece)
       const from = toChessNotation(fromRow, fromCol)
       const to = toChessNotation(toRow, toCol)
@@ -465,7 +470,7 @@ function AnalyzeGames() {
         // Add checkmate to move history
         const newHistory = [...truncatedHistory, 
           { moveNumber, text: moveText, color: currentTurn, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces) }, 
-          { moveNumber: moveNumber + 0.5, text: `🏁 CHECKMATE! ${currentTurn === 'white' ? '⚪ White' : '⚫ Black'} wins!`, color: 'checkmate', boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces) }]
+          { moveNumber: moveNumber + 0.5, text: `🏁 CHECKMATE! ${currentTurn === PLAYER_TURN_WHITE ? '⚪ White' : '⚫ Black'} wins!`, color: PLAYER_TURN_CHECKMATE, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces) }]
         setMoveHistory(newHistory)
         setCurrentMoveIndex(newHistory.length - 1)
       } else {
@@ -482,20 +487,20 @@ function AnalyzeGames() {
       // Recalculate attacked pieces based on toggle state
       const attacks = []
       if (showWhiteAttacks) {
-        attacks.push(...calculateAttackedPieces(newBoard, 'white'))
+        attacks.push(...calculateAttackedPieces(newBoard, PLAYER_TURN_WHITE))
       }
       if (showBlackAttacks) {
-        attacks.push(...calculateAttackedPieces(newBoard, 'black'))
+        attacks.push(...calculateAttackedPieces(newBoard, PLAYER_TURN_BLACK))
       }
       setAttackedPieces(attacks)
       
       // Recalculate protected pieces based on toggle state
       const protections = []
       if (showWhiteProtection) {
-        protections.push(...calculateProtectedPieces(newBoard, 'white'))
+        protections.push(...calculateProtectedPieces(newBoard, PLAYER_TURN_WHITE))
       }
       if (showBlackProtection) {
-        protections.push(...calculateProtectedPieces(newBoard, 'black'))
+        protections.push(...calculateProtectedPieces(newBoard, PLAYER_TURN_BLACK))
       }
       setProtectedPieces(protections)
     }
@@ -557,7 +562,7 @@ function AnalyzeGames() {
       const newMovedPieces = new Set(movedPieces)
       newMovedPieces.add(`${fromRow}-${fromCol}`)
       setMovedPieces(newMovedPieces)
-      const newTurn = currentTurn === 'white' ? 'black' : 'white'
+      const newTurn = currentTurn === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
       setCurrentTurn(newTurn)
       
       // Truncate history if we're making a move from a previous position
@@ -568,7 +573,7 @@ function AnalyzeGames() {
       const fromNotation = toChessNotation(fromRow, fromCol)
       const toNotation = toChessNotation(toRow, toCol)
       const moveSymbol = capturedPiece ? 'x' : '→'
-      const colorSymbol = currentTurn === 'white' ? '⚪' : '⚫'
+      const colorSymbol = currentTurn === PLAYER_TURN_WHITE ? '⚪' : '⚫'
       const moveText = `${colorSymbol} ${pieceName} ${fromNotation} ${moveSymbol} ${toNotation}`
       const moveNumber = Math.floor(truncatedHistory.length / 2) + 1
       const newMove = {
@@ -584,7 +589,7 @@ function AnalyzeGames() {
         // Add checkmate to move history
         newMove.boardState = newBoard.map(row => [...row])
         newMove.movedPiecesState = new Set(newMovedPieces)
-        const checkmateMove = { moveNumber: moveNumber + 0.5, text: `🏁 CHECKMATE! ${currentTurn === 'white' ? '⚪ White' : '⚫ Black'} wins!`, color: 'checkmate', boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces) }
+        const checkmateMove = { moveNumber: moveNumber + 0.5, text: `🏁 CHECKMATE! ${currentTurn === PLAYER_TURN_WHITE ? '⚪ White' : '⚫ Black'} wins!`, color: PLAYER_TURN_CHECKMATE, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces) }
         const newHistory = [...truncatedHistory, newMove, checkmateMove]
         setMoveHistory(newHistory)
         setCurrentMoveIndex(newHistory.length - 1)
@@ -604,20 +609,20 @@ function AnalyzeGames() {
       // Recalculate attacked pieces based on toggle state
       const attacks = []
       if (showWhiteAttacks) {
-        attacks.push(...calculateAttackedPieces(newBoard, 'white'))
+        attacks.push(...calculateAttackedPieces(newBoard, PLAYER_TURN_WHITE))
       }
       if (showBlackAttacks) {
-        attacks.push(...calculateAttackedPieces(newBoard, 'black'))
+        attacks.push(...calculateAttackedPieces(newBoard, PLAYER_TURN_BLACK))
       }
       setAttackedPieces(attacks)
       
       // Recalculate protected pieces based on toggle state
       const protections = []
       if (showWhiteProtection) {
-        protections.push(...calculateProtectedPieces(newBoard, 'white'))
+        protections.push(...calculateProtectedPieces(newBoard, PLAYER_TURN_WHITE))
       }
       if (showBlackProtection) {
-        protections.push(...calculateProtectedPieces(newBoard, 'black'))
+        protections.push(...calculateProtectedPieces(newBoard, PLAYER_TURN_BLACK))
       }
       setProtectedPieces(protections)
     }
@@ -644,32 +649,32 @@ function AnalyzeGames() {
     
     // Determine whose turn it is: if the move was made by white, it's black's turn next
     // For index 0 (initial position), it's white's turn
-    let turn = 'white'
+    let turn = PLAYER_TURN_WHITE
     if (index > 0) {
       // After a move is made, it's the other player's turn
-      if (historyEntry.color === 'white') {
-        turn = 'black'
-      } else if (historyEntry.color === 'black') {
-        turn = 'white'
-      } else if (historyEntry.color === 'checkmate') {
+      if (historyEntry.color === PLAYER_TURN_WHITE) {
+        turn = PLAYER_TURN_BLACK
+      } else if (historyEntry.color === PLAYER_TURN_BLACK) {
+        turn = PLAYER_TURN_WHITE
+      } else if (historyEntry.color === PLAYER_TURN_CHECKMATE) {
         // On checkmate move, keep the current turn (game is over anyway)
-        turn = historyEntry.text.includes('White wins') ? 'black' : 'white'
+        turn = historyEntry.text.includes('White wins') ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
       }
     }
     setCurrentTurn(turn)
     
     // Check game state
     const restoredBoard = historyEntry.boardState
-    if (historyEntry.color === 'checkmate') {
-      const checkmatedColor = historyEntry.text.includes('White wins') ? 'black' : 'white'
+    if (historyEntry.color === PLAYER_TURN_CHECKMATE) {
+      const checkmatedColor = historyEntry.text.includes('White wins') ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
       setCheckmate(checkmatedColor)
       setKingInCheck(checkmatedColor)
     } else {
       setCheckmate(null)
-      if (isKingInCheck('white', restoredBoard)) {
-        setKingInCheck('white')
-      } else if (isKingInCheck('black', restoredBoard)) {
-        setKingInCheck('black')
+      if (isKingInCheck(PLAYER_TURN_WHITE, restoredBoard)) {
+        setKingInCheck(PLAYER_TURN_WHITE)
+      } else if (isKingInCheck(PLAYER_TURN_BLACK, restoredBoard)) {
+        setKingInCheck(PLAYER_TURN_BLACK)
       } else {
         setKingInCheck(null)
       }
@@ -678,31 +683,31 @@ function AnalyzeGames() {
     // Recalculate attacked and protected pieces
     const attacks = []
     if (showWhiteAttacks) {
-      attacks.push(...calculateAttackedPieces(restoredBoard, 'white'))
+      attacks.push(...calculateAttackedPieces(restoredBoard, PLAYER_TURN_WHITE))
     }
     if (showBlackAttacks) {
-      attacks.push(...calculateAttackedPieces(restoredBoard, 'black'))
+      attacks.push(...calculateAttackedPieces(restoredBoard, PLAYER_TURN_BLACK))
     }
     setAttackedPieces(attacks)
     
     const protections = []
     if (showWhiteProtection) {
-      protections.push(...calculateProtectedPieces(restoredBoard, 'white'))
+      protections.push(...calculateProtectedPieces(restoredBoard, PLAYER_TURN_WHITE))
     }
     if (showBlackProtection) {
-      protections.push(...calculateProtectedPieces(restoredBoard, 'black'))
+      protections.push(...calculateProtectedPieces(restoredBoard, PLAYER_TURN_BLACK))
     }
     setProtectedPieces(protections)
   }
 
   const resetBoard = () => {
     setBoard(initialBoardState)
-    setCurrentTurn('white')
+    setCurrentTurn(PLAYER_TURN_WHITE)
     setSelectedSquare(null)
     setValidMoves([])
     setAttackedPieces([])
     setProtectedPieces([])
-    setMoveHistory([{ moveNumber: 0, text: 'Initial position', color: 'white', boardState: initialBoardState, movedPiecesState: new Set() }])
+    setMoveHistory([{ moveNumber: 0, text: 'Initial position', color: PLAYER_TURN_WHITE, boardState: initialBoardState, movedPiecesState: new Set() }])
     setMovedPieces(new Set())
     setKingInCheck(null)
     setCheckmate(null)
@@ -756,6 +761,38 @@ function AnalyzeGames() {
     URL.revokeObjectURL(url)
   }
 
+/**
+ * Imports a chess game's move history and board state from a text file.
+ * 
+ * Creates a file input dialog that accepts .txt files containing exported chess games.
+ * The file should contain a move history section and a "Final Board State" section with
+ * the board represented using Unicode chess symbols.
+ * 
+ * The function performs the following operations:
+ * - Parses move history lines in the format "moveNumber. moveText"
+ * - Extracts player turns (white/black) based on chess piece symbols (⚫)
+ * - Marks all moves as sealed except the last one
+ * - Parses the board state from Unicode chess symbols to internal piece notation
+ * - Updates the game state including board, move history, current turn, and check/checkmate status
+ * - Determines the next player's turn based on the last move or checkmate state
+ * 
+ * @function
+ * @throws {Error} Displays an alert if the file format is invalid or parsing fails
+ * @fires input#onchange - Triggers when a file is selected
+ * 
+ * @example
+ * // File format expected:
+ * // 1. ♙ e2-e4
+ * // 1.5. ⚫ ♟ e7-e5
+ * // 2. ♘ g1-f3
+ * // Final Board State
+ * // 8 | ♜ | ♞ | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ | 8
+ * // ...
+ * 
+ * @see {@link PLAYER_TURN_WHITE}
+ * @see {@link PLAYER_TURN_BLACK}
+ * @see {@link PLAYER_TURN_CHECKMATE}
+ */
   const importMoveHistory = () => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -782,9 +819,9 @@ function AnalyzeGames() {
               const moveNumber = Number.parseFloat(match[1])
               const text = match[2].trim()
               // Determine color from the move text
-              let color = 'white'
-              if (text.includes('⚫')) color = 'black'
-              if (text.includes('CHECKMATE')) color = 'checkmate'
+              let color = PLAYER_TURN_WHITE
+              if (text.includes('⚫')) color = PLAYER_TURN_BLACK
+              if (text.includes('CHECKMATE')) color = PLAYER_TURN_CHECKMATE
               // Mark all moves as sealed except the last one
               const sealed = index < array.length - 1
               return { moveNumber, text, color, sealed }
@@ -841,24 +878,24 @@ function AnalyzeGames() {
           
           // Determine whose turn it is based on the last move
           const lastMove = parsedMoves[parsedMoves.length - 1]
-          if (lastMove?.color === 'checkmate') {
+          if (lastMove?.color === PLAYER_TURN_CHECKMATE) {
             // Game is over, keep the turn as it was
-            const checkmatedColor = lastMove.text.includes('White wins') ? 'black' : 'white'
+            const checkmatedColor = lastMove.text.includes('White wins') ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
             setCheckmate(checkmatedColor)
             setKingInCheck(checkmatedColor)
             // Set turn to the winner (who made the last move before checkmate)
-            const lastMoveColor = parsedMoves[parsedMoves.length - 2]?.color || 'white'
-            setCurrentTurn(lastMoveColor === 'white' ? 'black' : 'white')
+            const lastMoveColor = parsedMoves[parsedMoves.length - 2]?.color || PLAYER_TURN_WHITE
+            setCurrentTurn(lastMoveColor === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE)
           } else {
             setCheckmate(null)
             // Determine next turn: if last move was by white, it's black's turn and vice versa
-            if (lastMove?.color === 'white') {
-              setCurrentTurn('black')
-            } else if (lastMove?.color === 'black') {
-              setCurrentTurn('white')
+            if (lastMove?.color === PLAYER_TURN_WHITE) {
+              setCurrentTurn(PLAYER_TURN_BLACK)
+            } else if (lastMove?.color === PLAYER_TURN_BLACK) {
+              setCurrentTurn(PLAYER_TURN_WHITE)
             } else {
               // If no moves, white starts
-              setCurrentTurn('white')
+              setCurrentTurn(PLAYER_TURN_WHITE)
             }
           }
           
@@ -875,82 +912,61 @@ function AnalyzeGames() {
     input.click()
   }
 
-  // Handle toggle for white attacks
-  const handleToggleWhiteAttacks = () => {
-    const newValue = !showWhiteAttacks
-    setShowWhiteAttacks(newValue)
+  // Handle toggle for attacks (white or black)
+  const handleToggleAttacks = (color) => {
+    const isWhite = color === PLAYER_TURN_WHITE
+    const currentValue = isWhite ? showWhiteAttacks : showBlackAttacks
+    const otherValue = isWhite ? showBlackAttacks : showWhiteAttacks
+    const setter = isWhite ? setShowWhiteAttacks : setShowBlackAttacks
+    
+    const newValue = !currentValue
+    setter(newValue)
     
     if (newValue) {
-      // Calculate and show white's attacks
-      const whiteAttacks = calculateAttackedPieces(board, 'white')
-      const blackAttacks = showBlackAttacks ? calculateAttackedPieces(board, 'black') : []
-      // Combine both if black attacks is also on
-      setAttackedPieces([...whiteAttacks, ...blackAttacks])
-    } else if (showBlackAttacks) {
-      // Only keep black attacks if it's on
-      const blackAttacks = calculateAttackedPieces(board, 'black')
-      setAttackedPieces(blackAttacks)
+      // Calculate and show attacks for the toggled color
+      const currentAttacks = calculateAttackedPieces(board, color)
+      const otherColor = isWhite ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
+      const otherAttacks = otherValue ? calculateAttackedPieces(board, otherColor) : []
+      // Combine both if the other color's attacks is also on
+      setAttackedPieces([...currentAttacks, ...otherAttacks])
+    } else if (otherValue) {
+      // Only keep the other color's attacks if it's on
+      const otherColor = isWhite ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
+      const otherAttacks = calculateAttackedPieces(board, otherColor)
+      setAttackedPieces(otherAttacks)
     } else {
       setAttackedPieces([])
     }
   }
 
-  // Handle toggle for black attacks
-  const handleToggleBlackAttacks = () => {
-    const newValue = !showBlackAttacks
-    setShowBlackAttacks(newValue)
+  // Handle toggle for protection (white or black)
+  const handleToggleProtection = (color) => {
+    const isWhite = color === PLAYER_TURN_WHITE
+    const currentValue = isWhite ? showWhiteProtection : showBlackProtection
+    const otherValue = isWhite ? showBlackProtection : showWhiteProtection
+    const setter = isWhite ? setShowWhiteProtection : setShowBlackProtection
+    
+    const newValue = !currentValue
+    setter(newValue)
     
     if (newValue) {
-      // Calculate and show black's attacks
-      const blackAttacks = calculateAttackedPieces(board, 'black')
-      const whiteAttacks = showWhiteAttacks ? calculateAttackedPieces(board, 'white') : []
-      // Combine both if white attacks is also on
-      setAttackedPieces([...whiteAttacks, ...blackAttacks])
-    } else if (showWhiteAttacks) {
-      // Only keep white attacks if it's on
-      const whiteAttacks = calculateAttackedPieces(board, 'white')
-      setAttackedPieces(whiteAttacks)
-    } else {
-      setAttackedPieces([])
-    }
-  }
-
-  // Handle toggle for white protection
-  const handleToggleWhiteProtection = () => {
-    const newValue = !showWhiteProtection
-    setShowWhiteProtection(newValue)
-    
-    if (newValue) {
-      const whiteProtected = calculateProtectedPieces(board, 'white')
-      const blackProtected = showBlackProtection ? calculateProtectedPieces(board, 'black') : []
-      setProtectedPieces([...whiteProtected, ...blackProtected])
-    } else if (showBlackProtection) {
-      const blackProtected = calculateProtectedPieces(board, 'black')
-      setProtectedPieces(blackProtected)
+      // Calculate and show protection for the toggled color
+      const currentProtected = calculateProtectedPieces(board, color)
+      const otherColor = isWhite ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
+      const otherProtected = otherValue ? calculateProtectedPieces(board, otherColor) : []
+      setProtectedPieces([...currentProtected, ...otherProtected])
+    } else if (otherValue) {
+      // Only keep the other color's protection if it's on
+      const otherColor = isWhite ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
+      const otherProtected = calculateProtectedPieces(board, otherColor)
+      setProtectedPieces(otherProtected)
     } else {
       setProtectedPieces([])
     }
   }
 
-  // Handle toggle for black protection
-  const handleToggleBlackProtection = () => {
-    const newValue = !showBlackProtection
-    setShowBlackProtection(newValue)
-    
-    if (newValue) {
-      const blackProtected = calculateProtectedPieces(board, 'black')
-      const whiteProtected = showWhiteProtection ? calculateProtectedPieces(board, 'white') : []
-      setProtectedPieces([...whiteProtected, ...blackProtected])
-    } else if (showWhiteProtection) {
-      const whiteProtected = calculateProtectedPieces(board, 'white')
-      setProtectedPieces(whiteProtected)
-    } else {
-      setProtectedPieces([])
-    }
-  }
-
-  const winner = checkmate === 'white' ? '⚫ Black' : '⚪ White'
-  const turnMessage = currentTurn === 'white' ? '⚪ White to move' : '⚫ Black to move'
+  const winner = checkmate === PLAYER_TURN_WHITE ? '⚫ Black' : '⚪ White'
+  const turnMessage = currentTurn === PLAYER_TURN_WHITE ? '⚪ White to move' : '⚫ Black to move'
   const checkmateMessage = checkmate 
     ? `🏁 CHECKMATE! ${winner} wins!`
     : turnMessage
@@ -1057,13 +1073,13 @@ function AnalyzeGames() {
             <h4>Show Attacks</h4>
             <button 
               className={`toggle-btn ${showWhiteAttacks ? 'active' : ''}`}
-              onClick={handleToggleWhiteAttacks}
+              onClick={() => handleToggleAttacks(PLAYER_TURN_WHITE)}
             >
               ⚪ White Attacks: {showWhiteAttacks ? 'ON' : 'OFF'}
             </button>
             <button 
               className={`toggle-btn ${showBlackAttacks ? 'active' : ''}`}
-              onClick={handleToggleBlackAttacks}
+              onClick={() => handleToggleAttacks(PLAYER_TURN_BLACK)}
             >
               ⚫ Black Attacks: {showBlackAttacks ? 'ON' : 'OFF'}
             </button>
@@ -1072,13 +1088,13 @@ function AnalyzeGames() {
             <h4>Show Protection</h4>
             <button 
               className={`toggle-btn ${showWhiteProtection ? 'active' : ''}`}
-              onClick={handleToggleWhiteProtection}
+              onClick={() => handleToggleProtection(PLAYER_TURN_WHITE)}
             >
               ⚪ White Protection: {showWhiteProtection ? 'ON' : 'OFF'}
             </button>
             <button 
               className={`toggle-btn ${showBlackProtection ? 'active' : ''}`}
-              onClick={handleToggleBlackProtection}
+              onClick={() => handleToggleProtection(PLAYER_TURN_BLACK)}
             >
               ⚫ Black Protection: {showBlackProtection ? 'ON' : 'OFF'}
             </button>
