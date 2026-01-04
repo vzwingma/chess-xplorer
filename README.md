@@ -2,24 +2,27 @@
 
 Outil interactif d'analyse et de visualisation d'échecs développé avec React + Vite.
 
+**🌐 Application disponible ici : [https://vzwingma.github.io/chess-xplorer](https://vzwingma.github.io/chess-xplorer)**
+
 ## 📋 Description
 
-Chess-Xplorer est une application web complète permettant de jouer aux échecs et d'analyser les positions avec des outils visuels avancés. L'application implémente toutes les règles officielles du jeu d'échecs, y compris les mouvements spéciaux comme le roque, et offre une détection automatique des échecs et échecs et mat.
+Chess-Xplorer est une application web complète permettant de jouer aux échecs et d'analyser les positions avec des outils visuels avancés. L'application implémente toutes les règles officielles du jeu d'échecs, y compris les mouvements spéciaux comme le roque et la promotion des pions, et offre une détection automatique des échecs et échecs et mat.
 
 ## ✨ Fonctionnalités
 
 ### Jeu d'échecs complet
 - **Règles officielles** : Tous les mouvements légaux pour chaque pièce (pions, tours, cavaliers, fous, dames, rois)
 - **Roque** : Support complet du petit et grand roque avec validation des conditions
+- **Promotion des pions** : Les pions atteignant l'extrémité opposée du plateau sont automatiquement promus en dame
 - **Détection d'échec** : Le roi en échec clignote en rouge
 - **Détection d'échec et mat** : Fin automatique de la partie avec indication du vainqueur
 - **Validation des coups** : Impossible de jouer un coup qui met son propre roi en échec
 
 ### Interface utilisateur intuitive
 - **Drag & Drop** : Déplacez les pièces en les faisant glisser
-- **Clic pour jouer** : Alternative au drag & drop - cliquez sur une pièce puis sur la case de destination
-- **Coups valides** : Points bleus pour les cases disponibles, points orange pour les cases où la pièce serait attaquée
-- **Attaques possibles** : Cases rouges pour les captures possibles
+- **Clic pour jouer** : Alternative au drag & drop - cliquez sur une pièce puis sur la case de destination ou directement sur une pièce ennemie pour la capturer
+- **Coups valides** : Points bleus pour les cases disponibles, points orange clair pour les cases où la pièce serait attaquée
+- **Attaques possibles** : Bordure rouge sur les captures possibles
 - **Plateau visuel** : Arrière-plan en image de plateau d'échecs réaliste
 
 ### Outils d'analyse avancés
@@ -28,9 +31,11 @@ Chess-Xplorer est une application web complète permettant de jouer aux échecs 
 - **Avertissement de danger** : Les coups valides affichent un point orange si la pièce sera sous attaque après le déplacement
 
 ### Historique et sauvegarde
-- **Historique des coups** : Liste complète avec notation d'échecs et icônes Unicode (♟♜♞♝♛♚)
-- **Export** : Sauvegardez vos parties dans un fichier texte avec l'historique et la position finale du plateau
-- **Import** : Rechargez une partie sauvegardée pour continuer ou analyser
+- **Historique interactif des coups** : Liste complète avec notation d'échecs et icônes Unicode (♟♜♞♝♛♚)
+- **Navigation dans l'historique** : Cliquez sur n'importe quel coup pour revenir à cette position
+- **Analyse de variantes** : Jouez des coups alternatifs depuis n'importe quelle position - l'historique se réorganise automatiquement
+- **Export** : Sauvegardez vos parties dans un fichier texte avec l'historique complet et la position finale du plateau
+- **Import** : Rechargez une partie sauvegardée pour continuer ou analyser (les coups importés sont verrouillés 🔒)
 - **Notation** : Format lisible avec symboles de couleur (⚪ blancs, ⚫ noirs) et notation algébrique
 
 ## 🎮 Utilisation
@@ -50,9 +55,10 @@ Chess-Xplorer est une application web complète permettant de jouer aux échecs 
 - Cliquez sur une pièce pour la sélectionner (la case devient jaune)
 - Les coups valides s'affichent avec des points :
   - 🔵 Point bleu = case sûre (pièce non attaquée)
-  - 🟠 Point orange = case risquée (pièce sera attaquée)
+  - 🟠 Point orange clair = case risquée (pièce sera attaquée)
   - 🔴 Bordure rouge = capture possible
 - Cliquez sur une case valide pour y déplacer la pièce
+- Ou cliquez directement sur une pièce ennemie pour la capturer
 
 ### Outils d'analyse
 **Afficher les attaques :**
@@ -65,9 +71,18 @@ Chess-Xplorer est une application web complète permettant de jouer aux échecs 
 - L'épaisseur de la bordure indique le nombre de défenseurs (1 à 4+)
 
 ### Gérer les parties
-- **Reset Board** : Réinitialise le plateau à la position initiale
-- **💾 Export** : Sauvegarde la partie en cours dans un fichier .txt
 - **📂 Import** : Charge une partie depuis un fichier .txt exporté
+  - Les coups importés sont marqués avec 🔒 (verrouillés)
+  - Seul le dernier coup importé est cliquable pour revenir à la position initiale d'import
+  - Le tour du joueur est automatiquement déterminé selon le dernier coup
+- **💾 Export** : Sauvegarde la partie en cours dans un fichier .txt
+- **Reset Board** : Réinitialise le plateau à la position initiale
+
+### Navigation dans l'historique
+- Cliquez sur n'importe quel coup dans l'historique pour revenir à cette position
+- Le coup actuellement affiché est surligné en bleu
+- Jouez un coup depuis une position antérieure : tous les coups suivants sont automatiquement supprimés
+- Créez des variantes en explorant différentes continuations depuis n'importe quelle position
 
 ## 🛠️ Technologies utilisées
 
@@ -115,7 +130,7 @@ chess-xplorer/
 ## 🎯 Règles d'échecs implémentées
 
 ### Mouvements des pièces
-- **Pion (♟)** : Avance d'une case, deux cases depuis la position initiale, capture en diagonale
+- **Pion (♟)** : Avance d'une case, deux cases depuis la position initiale, capture en diagonale, promotion automatique en dame en atteignant la dernière rangée
 - **Tour (♜)** : Déplacement horizontal et vertical illimité
 - **Cavalier (♞)** : Déplacement en "L" (2+1 cases)
 - **Fou (♝)** : Déplacement diagonal illimité
@@ -128,7 +143,10 @@ chess-xplorer/
   - Grand roque (O-O-O) : Roi vers la colonne c, tour de a vers d
   - Conditions : ni le roi ni la tour ne doivent avoir bougé, cases vides entre les deux, roi ne doit pas traverser une case attaquée
 
+- **Promotion du pion** : Lorsqu'un pion atteint la dernière rangée, il est automatiquement promu en dame
+
 - **Échec** : Le roi clignote en rouge, seuls les coups qui sortent de l'échec sont autorisés
+
 - **Échec et mat** : Partie terminée, plus aucun coup possible
 
 ## 📝 Format d'export
@@ -155,9 +173,11 @@ Final Board State
 
 ## 🚀 Améliorations futures possibles
 
-- Annuler/Refaire les coups
+- Promotion du pion en d'autres pièces (tour, fou, cavalier)
 - Suggestions de coups (moteur d'IA)
 
 ## 👤 Auteur
+
+Développé avec ❤️ pour les passionnés d'échecs
 
 Entièrement développé avec Github Copilot en mode Agent avec Claude Sonnet 4.5
