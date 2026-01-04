@@ -92,17 +92,31 @@ function AnalyzeGames() {
     return files[col] + ranks[row]
   }
 
-  // Find king position on the board
-  const findKingPosition = (color, boardToCheck = board) => {
+  // Get opponent color
+  const getOpponentColor = (color) => {
+    return color === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
+  }
+
+  // Iterate over all board squares with a callback
+  const forEachBoardSquare = (callback) => {
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
-        const piece = boardToCheck[row][col]
-        if (piece === `${color}-R`) {
-          return { row, col }
-        }
+        if (callback(row, col) === false) return false
       }
     }
-    return null
+    return true
+  }
+
+  // Find king position on the board
+  const findKingPosition = (color, boardToCheck = board) => {
+    let kingPos = null
+    forEachBoardSquare((row, col) => {
+      if (boardToCheck[row][col] === `${color}-R`) {
+        kingPos = { row, col }
+        return false // Stop iteration
+      }
+    })
+    return kingPos
   }
 
   // Check if a king is in check
@@ -163,7 +177,7 @@ function AnalyzeGames() {
   // Helper function to check if a square has an opponent piece
   const isOpponent = (row, col, color, boardToCheck = board) => {
     if (!boardToCheck[row]?.[col]) return false
-    return boardToCheck[row][col].startsWith(color === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE)
+    return boardToCheck[row][col].startsWith(getOpponentColor(color))
   }
 
   // Validate legal moves for each piece type
@@ -275,34 +289,24 @@ function AnalyzeGames() {
 
   // Check if a square is under attack by opponent
   const isSquareUnderAttack = (row, col, color, boardToCheck = board) => {
-    const opponentColor = color === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
-    for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) {
-        const piece = boardToCheck[r][c]
-        if (piece?.startsWith(opponentColor)) {
-          if (isLegalMove(piece, r, c, row, col, boardToCheck, false)) {
-            return true
-          }
+    const opponentColor = getOpponentColor(color)
+    let isAttacked = false
+    forEachBoardSquare((r, c) => {
+      const piece = boardToCheck[r][c]
+      if (piece?.startsWith(opponentColor)) {
+        if (isLegalMove(piece, r, c, row, col, boardToCheck, false)) {
+          isAttacked = true
+          return false // Stop iteration
         }
       }
-    }
-    return false
+    })
+    return isAttacked
   }
 
   // Check if path is clear (for rook, bishop, queen)
   const isPathClear = (fromRow, fromCol, toRow, toCol, boardToCheck = board) => {
-    let rowStep = 0
-    if (toRow > fromRow) {
-      rowStep = 1
-    } else if (toRow < fromRow) {
-      rowStep = -1
-    }
-    let colStep = 0
-    if (toCol > fromCol) {
-      colStep = 1
-    } else if (toCol < fromCol) {
-      colStep = -1
-    }
+    const rowStep = Math.sign(toRow - fromRow)
+    const colStep = Math.sign(toCol - fromCol)
     
     let currentRow = fromRow + rowStep
     let currentCol = fromCol + colStep
@@ -343,23 +347,19 @@ function AnalyzeGames() {
   // Calculate all attacked pieces by the current player
   const calculateAttackedPieces = (boardState, attackingColor) => {
     const attacked = []
-    for (let fromRow = 0; fromRow < 8; fromRow++) {
-      for (let fromCol = 0; fromCol < 8; fromCol++) {
-        const piece = boardState[fromRow][fromCol]
-        if (piece?.startsWith(attackingColor)) {
-          for (let toRow = 0; toRow < 8; toRow++) {
-            for (let toCol = 0; toCol < 8; toCol++) {
-              const targetPiece = boardState[toRow][toCol]
-              if (targetPiece && !targetPiece.startsWith(attackingColor)) {
-                if (isLegalMove(piece, fromRow, fromCol, toRow, toCol, boardState)) {
-                  attacked.push({ row: toRow, col: toCol, attackedBy: attackingColor })
-                }
-              }
+    forEachBoardSquare((fromRow, fromCol) => {
+      const piece = boardState[fromRow][fromCol]
+      if (piece?.startsWith(attackingColor)) {
+        forEachBoardSquare((toRow, toCol) => {
+          const targetPiece = boardState[toRow][toCol]
+          if (targetPiece && !targetPiece.startsWith(attackingColor)) {
+            if (isLegalMove(piece, fromRow, fromCol, toRow, toCol, boardState)) {
+              attacked.push({ row: toRow, col: toCol, attackedBy: attackingColor })
             }
           }
-        }
+        })
       }
-    }
+    })
     return attacked
   }
 
@@ -392,46 +392,51 @@ function AnalyzeGames() {
     const defenders = []
     const pieceColor = targetPiece.split('-')[0]
     
-    for (let fromRow = 0; fromRow < 8; fromRow++) {
-      for (let fromCol = 0; fromCol < 8; fromCol++) {
-        const piece = boardState[fromRow][fromCol]
-        if (piece?.startsWith(pieceColor) && !(fromRow === targetRow && fromCol === targetCol)) {
-          if (isLegalMove(piece, fromRow, fromCol, targetRow, targetCol, boardState, true)) {
-            defenders.push({ row: fromRow, col: fromCol, color: pieceColor })
-          }
+    forEachBoardSquare((fromRow, fromCol) => {
+      const piece = boardState[fromRow][fromCol]
+      if (piece?.startsWith(pieceColor) && !(fromRow === targetRow && fromCol === targetCol)) {
+        if (isLegalMove(piece, fromRow, fromCol, targetRow, targetCol, boardState, true)) {
+          defenders.push({ row: fromRow, col: fromCol, color: pieceColor })
         }
       }
-    }
+    })
     
     return defenders
+  }
+
+  // Flash defender pieces with timeout
+  const flashDefenders = (row, col) => {
+    if (showDefenderFlash) {
+      const defenders = calculateDefenders(row, col)
+      setFlashingPieces(defenders)
+      setTimeout(() => {
+        setFlashingPieces([])
+      }, 1000)
+    }
   }
 
   // Calculate protected pieces (defended by same color) with defender count
   const calculateProtectedPieces = (boardState, protectingColor) => {
     const protectionMap = new Map()
     
-    for (let fromRow = 0; fromRow < 8; fromRow++) {
-      for (let fromCol = 0; fromCol < 8; fromCol++) {
-        const piece = boardState[fromRow][fromCol]
-        if (piece?.startsWith(protectingColor)) {
-          for (let toRow = 0; toRow < 8; toRow++) {
-            for (let toCol = 0; toCol < 8; toCol++) {
-              const targetPiece = boardState[toRow][toCol]
-              // Check if target is same color and can be defended
-              if (targetPiece?.startsWith(protectingColor) && 
-                  !(fromRow === toRow && fromCol === toCol)) {
-                if (isLegalMove(piece, fromRow, fromCol, toRow, toCol, boardState, true)) {
-                  const key = `${toRow}-${toCol}`
-                  const current = protectionMap.get(key) || { row: toRow, col: toCol, defenders: 0, color: protectingColor }
-                  current.defenders += 1
-                  protectionMap.set(key, current)
-                }
-              }
+    forEachBoardSquare((fromRow, fromCol) => {
+      const piece = boardState[fromRow][fromCol]
+      if (piece?.startsWith(protectingColor)) {
+        forEachBoardSquare((toRow, toCol) => {
+          const targetPiece = boardState[toRow][toCol]
+          // Check if target is same color and can be defended
+          if (targetPiece?.startsWith(protectingColor) && 
+              !(fromRow === toRow && fromCol === toCol)) {
+            if (isLegalMove(piece, fromRow, fromCol, toRow, toCol, boardState, true)) {
+              const key = `${toRow}-${toCol}`
+              const current = protectionMap.get(key) || { row: toRow, col: toCol, defenders: 0, color: protectingColor }
+              current.defenders += 1
+              protectionMap.set(key, current)
             }
           }
-        }
+        })
       }
-    }
+    })
     
     return Array.from(protectionMap.values())
   }
@@ -545,15 +550,7 @@ function AnalyzeGames() {
       const moves = getValidMovesForPiece(piece, row, col)
       setValidMoves(moves)
       setAttackedPieces([])
-      
-      // Flash defender pieces if enabled
-      if (showDefenderFlash) {
-        const defenders = calculateDefenders(row, col)
-        setFlashingPieces(defenders)
-        setTimeout(() => {
-          setFlashingPieces([])
-        }, 1000)
-      }
+      flashDefenders(row, col)
       return
     }
     
@@ -565,15 +562,7 @@ function AnalyzeGames() {
     const moves = getValidMovesForPiece(piece, row, col)
     setValidMoves(moves)
     setAttackedPieces([])
-    
-    // Flash defender pieces if enabled
-    if (showDefenderFlash) {
-      const defenders = calculateDefenders(row, col)
-      setFlashingPieces(defenders)
-      setTimeout(() => {
-        setFlashingPieces([])
-      }, 1000)
-    }
+    flashDefenders(row, col)
   }
 
   // Handle square click for moving selected piece
@@ -910,22 +899,33 @@ function AnalyzeGames() {
     const isWhite = color === PLAYER_TURN_WHITE
     const isAttack = type === 'attack'
     
-    const currentValue = isWhite 
-      ? (isAttack ? showWhiteAttacks : showWhiteProtection)
-      : (isAttack ? showBlackAttacks : showBlackProtection)
-    const otherValue = isWhite 
-      ? (isAttack ? showBlackAttacks : showBlackProtection)
-      : (isAttack ? showWhiteAttacks : showWhiteProtection)
-    const setter = isWhite 
-      ? (isAttack ? setShowWhiteAttacks : setShowWhiteProtection)
-      : (isAttack ? setShowBlackAttacks : setShowBlackProtection)
+    // Get current state values
+    const getStateValue = (white, attack) => {
+      if (white && attack) return showWhiteAttacks
+      if (white && !attack) return showWhiteProtection
+      if (!white && attack) return showBlackAttacks
+      return showBlackProtection
+    }
+    
+    const currentValue = getStateValue(isWhite, isAttack)
+    const otherValue = getStateValue(!isWhite, isAttack)
+    
+    // Get setter function
+    const getSetter = (white, attack) => {
+      if (white && attack) return setShowWhiteAttacks
+      if (white && !attack) return setShowWhiteProtection
+      if (!white && attack) return setShowBlackAttacks
+      return setShowBlackProtection
+    }
+    const setter = getSetter(isWhite, isAttack)
+    
     const calculator = isAttack ? calculateAttackedPieces : calculateProtectedPieces
     const stateSetter = isAttack ? setAttackedPieces : setProtectedPieces
     
     const newValue = !currentValue
     setter(newValue)
     
-    const otherColor = isWhite ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
+    const otherColor = getOpponentColor(color)
     const current = newValue ? calculator(board, color) : []
     const other = otherValue ? calculator(board, otherColor) : []
     stateSetter([...current, ...other])
