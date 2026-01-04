@@ -10,7 +10,7 @@
 .header h1 {
   font-size: 3rem;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -18,7 +18,7 @@
 
 .tagline {
   font-size: 1.2rem;
-  color: #888;
+  color: var(--color-text-muted);
 }
 
 .main-content {
@@ -37,7 +37,7 @@
 
 .welcome-section p {
   font-size: 1.1rem;
-  color: #aaa;
+  color: var(--color-text-light);
 }
 
 .features {
@@ -48,10 +48,10 @@
 }
 
 .feature-card {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-card);
   padding: 2rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
 }
@@ -67,24 +67,24 @@
 }
 
 .feature-card p {
-  color: #aaa;
+  color: var(--color-text-light);
 }
 
 .cta-button {
-  background: linear-gradient(135deg, #5568d3 0%, #5d3a7d 100%);
+  background: var(--gradient-cta);
   color: #ffffff;
   border: none;
   padding: 1rem 2.5rem;
   font-size: 1.1rem;
   border-radius: 8px;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: var(--transition-transform);
   font-weight: 600;
 }
 
 .cta-button:hover {
   transform: scale(1.05);
-  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: var(--shadow-primary);
 }
 
 .cta-button:active {

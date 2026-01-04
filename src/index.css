@@ -11,6 +11,26 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Shared CSS Variables */
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-cta: linear-gradient(135deg, #5568d3 0%, #5d3a7d 100%);
+  --color-primary: #667eea;
+  --color-secondary: #764ba2;
+  --color-text-muted: #888;
+  --color-text-light: #aaa;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --bg-panel: rgba(255, 255, 255, 0.25);
+  --bg-panel-dark: rgba(255, 255, 255, 0.15);
+  --bg-hover: rgba(255, 255, 255, 0.1);
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-dark: rgba(60, 60, 60, 0.7);
+  --shadow-primary: 0 5px 15px rgba(102, 126, 234, 0.4);
+  --shadow-board: 0 10px 40px rgba(102, 126, 234, 0.3);
+  --transition-standard: all 0.2s ease;
+  --transition-transform: transform 0.2s ease, box-shadow 0.2s ease;
+  --border-radius: 6px;
+  --border-radius-lg: 12px;
 }
 
 * {
