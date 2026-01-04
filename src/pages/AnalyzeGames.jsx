@@ -1163,13 +1163,13 @@ function AnalyzeGames() {
               className={`toggle-btn ${showWhiteAttacks ? 'active' : ''}`}
               onClick={() => handleToggleAttacks(PLAYER_TURN_WHITE)}
             >
-              ⚪ White Attacks: {showWhiteAttacks ? 'ON' : 'OFF'}
+              ⚪ White Attacks <span className={`status-light ${showWhiteAttacks ? 'on' : 'off'}`}>●</span>
             </button>
             <button 
               className={`toggle-btn ${showBlackAttacks ? 'active' : ''}`}
               onClick={() => handleToggleAttacks(PLAYER_TURN_BLACK)}
             >
-              ⚫ Black Attacks: {showBlackAttacks ? 'ON' : 'OFF'}
+              ⚫ Black Attacks <span className={`status-light ${showBlackAttacks ? 'on' : 'off'}`}>●</span>
             </button>
           </div>
           <div className="attack-toggles">
@@ -1178,19 +1178,19 @@ function AnalyzeGames() {
               className={`toggle-btn ${showWhiteProtection ? 'active' : ''}`}
               onClick={() => handleToggleProtection(PLAYER_TURN_WHITE)}
             >
-              ⚪ All White Protections: {showWhiteProtection ? 'ON' : 'OFF'}
+              ⚪ All White Protections <span className={`status-light ${showWhiteProtection ? 'on' : 'off'}`}>●</span>
             </button>
             <button 
               className={`toggle-btn ${showBlackProtection ? 'active' : ''}`}
               onClick={() => handleToggleProtection(PLAYER_TURN_BLACK)}
             >
-              ⚫ All Black Protections: {showBlackProtection ? 'ON' : 'OFF'}
+              ⚫ All Black Protections <span className={`status-light ${showBlackProtection ? 'on' : 'off'}`}>●</span>
             </button>
             <button 
               className={`toggle-btn ${showDefenderFlash ? 'active' : ''}`}
               onClick={() => setShowDefenderFlash(!showDefenderFlash)}
             >
-              ✨ Selected piece protection: {showDefenderFlash ? 'ON' : 'OFF'}
+              ✨ Selected piece protection <span className={`status-light ${showDefenderFlash ? 'on' : 'off'}`}>●</span>
             </button>
           </div>
         </div>
