@@ -376,7 +376,7 @@ function AnalyzeGames() {
         const piece = boardState[fromRow][fromCol]
         if (piece?.startsWith(pieceColor) && !(fromRow === targetRow && fromCol === targetCol)) {
           if (isLegalMove(piece, fromRow, fromCol, targetRow, targetCol, boardState, true)) {
-            defenders.push({ row: fromRow, col: fromCol })
+            defenders.push({ row: fromRow, col: fromCol, color: pieceColor })
           }
         }
       }
@@ -1102,6 +1102,8 @@ function AnalyzeGames() {
                 // Don't show protection if king is in checkmate
                 const showProtection = isProtected && !isKingInCheckmateSquare
                 const isFlashing = flashingPieces.some(fp => fp.row === rowIndex && fp.col === colIndex)
+                const flashingPieceInfo = flashingPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
+                const flashClass = isFlashing && flashingPieceInfo ? `defender-flash-${flashingPieceInfo.color}` : ''
                 let validMoveClass = ''
                 if (isValidMove) {
                   validMoveClass = wouldBeAttacked ? 'valid-move-attacked' : 'valid-move'
@@ -1114,7 +1116,7 @@ function AnalyzeGames() {
                 }
                 
                 return (
-                  <button
+                  <div
                     key={`${rowIndex}-${colIndex}`}
                     className={`chess-square ${isLight ? 'light' : 'dark'} ${
                       isSelected ? 'selected' : ''
@@ -1129,7 +1131,7 @@ function AnalyzeGames() {
                     } ${
                       checkStatusClass
                     } ${
-                      isFlashing ? 'defender-flash' : ''
+                      flashClass
                     }`}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
@@ -1145,7 +1147,7 @@ function AnalyzeGames() {
                         onDragEnd={handleDragEnd}
                       />
                     )}
-                  </button>
+                  </div>
                 )
               })
             ))}
