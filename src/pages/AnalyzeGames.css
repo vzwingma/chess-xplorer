@@ -153,7 +153,38 @@
   border-radius: 50%;
   box-sizing: border-box;
   pointer-events: none;
-  
+}
+
+/* Blue dot indicator for safe attack squares */
+.chess-square.valid-attack-safe::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  right: 10%;
+  width: 20%;
+  height: 20%;
+  background-color: rgba(135, 206, 250, 0.9);
+  border: 1px solid rgb(59, 130, 173);
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(100, 150, 255, 0.7);
+  z-index: 3;
+}
+
+/* Orange dot indicator for unsafe attack squares */
+.chess-square.valid-attack-unsafe::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  right: 10%;
+  width: 20%;
+  height: 20%;
+  background-color: rgba(255, 200, 130, 0.5);
+  border: 1px solid rgba(255, 200, 130);
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(255, 180, 100, 0.7);
+  z-index: 3;
 }
 
 .chess-square.under-attack {

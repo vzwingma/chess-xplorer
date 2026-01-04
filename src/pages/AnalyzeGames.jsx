@@ -984,6 +984,13 @@ function AnalyzeGames() {
                 if (isValidMove) {
                   validMoveClass = wouldBeAttacked ? 'valid-move-attacked' : 'valid-move'
                 }
+                
+                // For valid attacks, add a class to indicate if piece would be safe or attacked
+                let validAttackClass = ''
+                if (isValidAttack) {
+                  validAttackClass = wouldBeAttacked ? 'valid-attack valid-attack-unsafe' : 'valid-attack valid-attack-safe'
+                }
+                
                 let checkStatusClass = ''
                 if (isKingInCheckmateSquare) {
                   checkStatusClass = 'in-checkmate'
@@ -999,7 +1006,7 @@ function AnalyzeGames() {
                     } ${
                       validMoveClass
                     } ${
-                      isValidAttack ? 'valid-attack' : ''
+                      validAttackClass
                     } ${
                       showUnderAttack ? `under-attack under-attack-${attackedBy}` : ''
                     } ${
