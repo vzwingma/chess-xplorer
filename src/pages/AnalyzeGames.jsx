@@ -846,6 +846,113 @@ function AnalyzeGames() {
     URL.revokeObjectURL(url)
   }
 
+  // Helper function to parse move history from file content
+  const parseMoveHistory = (historySection) => {
+    const moveLines = historySection.split('\n').filter(line => 
+      line.match(/^\d+\.\s*(.+)$/)
+    )
+    
+    return moveLines.map((line, index, array) => {
+      const match = line.match(/^(\d+(?:\.\d+)?)\.\s*(.+)$/)
+      if (match) {
+        const moveNumber = Number.parseFloat(match[1])
+        const text = match[2].trim()
+        let color = PLAYER_TURN_WHITE
+        if (text.includes('⚫')) color = PLAYER_TURN_BLACK
+        if (text.includes('CHECKMATE')) color = PLAYER_TURN_CHECKMATE
+        const sealed = index < array.length - 1
+        return { moveNumber, text, color, sealed }
+      }
+      return null
+    }).filter(move => move !== null)
+  }
+
+  // Helper function to parse board state from file content
+  const parseBoardState = (boardSection) => {
+    const symbolToPiece = {
+      '♙': 'white-p', '♖': 'white-T', '♘': 'white-C', '♗': 'white-F', '♕': 'white-Q', '♔': 'white-R',
+      '♟': 'black-p', '♜': 'black-T', '♞': 'black-C', '♝': 'black-F', '♛': 'black-Q', '♚': 'black-R'
+    }
+    
+    const boardLines = boardSection.split('\n').filter(line => line.match(/^\d\s*\|/))
+    const newBoard = new Array(8).fill(null).map(() => new Array(8).fill(''))
+    
+    boardLines.forEach(line => {
+      const match = line.match(/^(\d)\s*\|(.+)\|\s*\d$/)
+      if (match) {
+        const rank = Number.parseInt(match[1])
+        const rowIndex = 8 - rank
+        const squares = match[2].split('|').map(s => s.trim())
+        
+        squares.forEach((symbol, colIndex) => {
+          if (symbol && symbol !== ' ' && symbolToPiece[symbol]) {
+            newBoard[rowIndex][colIndex] = symbolToPiece[symbol]
+          }
+        })
+      }
+    })
+    
+    return newBoard
+  }
+
+  // Helper function to update game state after import
+  const updateGameStateAfterImport = (parsedMoves, newBoard) => {
+    setBoard(newBoard)
+    setMoveHistory(parsedMoves)
+    setSelectedSquare(null)
+    setValidMoves([])
+    setAttackedPieces([])
+    setProtectedPieces([])
+    setMovedPieces(new Set())
+    setKingInCheck(null)
+    setCurrentMoveIndex(parsedMoves.length - 1)
+    
+    const lastMove = parsedMoves[parsedMoves.length - 1]
+    if (lastMove?.color === PLAYER_TURN_CHECKMATE) {
+      const checkmatedColor = lastMove.text.includes('White wins') ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
+      setCheckmate(checkmatedColor)
+      setKingInCheck(checkmatedColor)
+      const lastMoveColor = parsedMoves[parsedMoves.length - 2]?.color || PLAYER_TURN_WHITE
+      setCurrentTurn(lastMoveColor === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE)
+    } else {
+      setCheckmate(null)
+      if (lastMove?.color === PLAYER_TURN_WHITE) {
+        setCurrentTurn(PLAYER_TURN_BLACK)
+      } else if (lastMove?.color === PLAYER_TURN_BLACK) {
+        setCurrentTurn(PLAYER_TURN_WHITE)
+      } else {
+        setCurrentTurn(PLAYER_TURN_WHITE)
+      }
+    }
+  }
+
+  // Helper function to handle file loading
+  const handleFileLoad = (content) => {
+    try {
+      const historySection = content.split('Final Board State')[0]
+      const parsedMoves = parseMoveHistory(historySection)
+      
+      const boardSection = content.split('Final Board State')[1]
+      if (!boardSection) {
+        alert('Could not find board state in file')
+        return
+      }
+      
+      const newBoard = parseBoardState(boardSection)
+      
+      if (parsedMoves.length > 0) {
+        parsedMoves[parsedMoves.length - 1].boardState = newBoard.map(row => [...row])
+        parsedMoves[parsedMoves.length - 1].movedPiecesState = new Set()
+      }
+      
+      updateGameStateAfterImport(parsedMoves, newBoard)
+      alert('Game loaded successfully!')
+    } catch (error) {
+      console.error('Error parsing file:', error)
+      alert('Error loading file. Please make sure it is a valid chess game export.')
+    }
+  }
+
 /**
  * Imports a chess game's move history and board state from a text file.
  * 
@@ -889,106 +996,7 @@ function AnalyzeGames() {
       
       const reader = new FileReader()
       reader.onload = (event) => {
-        const content = event.target.result
-        
-        try {
-          // Parse move history
-          const historySection = content.split('Final Board State')[0]
-          const moveLines = historySection.split('\n').filter(line => 
-            line.match(/^\d+\.\s*(.+)$/)
-          )
-          
-          const parsedMoves = moveLines.map((line, index, array) => {
-            const match = line.match(/^(\d+(?:\.\d+)?)\.\s*(.+)$/)
-            if (match) {
-              const moveNumber = Number.parseFloat(match[1])
-              const text = match[2].trim()
-              // Determine color from the move text
-              let color = PLAYER_TURN_WHITE
-              if (text.includes('⚫')) color = PLAYER_TURN_BLACK
-              if (text.includes('CHECKMATE')) color = PLAYER_TURN_CHECKMATE
-              // Mark all moves as sealed except the last one
-              const sealed = index < array.length - 1
-              return { moveNumber, text, color, sealed }
-            }
-            return null
-          }).filter(move => move !== null)
-          
-          // Parse board state
-          const boardSection = content.split('Final Board State')[1]
-          if (!boardSection) {
-            alert('Could not find board state in file')
-            return
-          }
-          
-          const symbolToPiece = {
-            '♙': 'white-p', '♖': 'white-T', '♘': 'white-C', '♗': 'white-F', '♕': 'white-Q', '♔': 'white-R',
-            '♟': 'black-p', '♜': 'black-T', '♞': 'black-C', '♝': 'black-F', '♛': 'black-Q', '♚': 'black-R'
-          }
-          
-          const boardLines = boardSection.split('\n').filter(line => line.match(/^\d\s*\|/))
-          const newBoard = new Array(8).fill(null).map(() => new Array(8).fill(''))
-          
-          boardLines.forEach(line => {
-            const match = line.match(/^(\d)\s*\|(.+)\|\s*\d$/)
-            if (match) {
-              const rank = Number.parseInt(match[1])
-              const rowIndex = 8 - rank
-              const squares = match[2].split('|').map(s => s.trim())
-              
-              squares.forEach((symbol, colIndex) => {
-                if (symbol && symbol !== ' ' && symbolToPiece[symbol]) {
-                  newBoard[rowIndex][colIndex] = symbolToPiece[symbol]
-                }
-              })
-            }
-          })
-          
-          // Add board state to the last imported move
-          if (parsedMoves.length > 0) {
-            parsedMoves[parsedMoves.length - 1].boardState = newBoard.map(row => [...row])
-            parsedMoves[parsedMoves.length - 1].movedPiecesState = new Set()
-          }
-          
-          // Update state
-          setBoard(newBoard)
-          setMoveHistory(parsedMoves)
-          setSelectedSquare(null)
-          setValidMoves([])
-          setAttackedPieces([])
-          setProtectedPieces([])
-          setMovedPieces(new Set()) // Reset moved pieces
-          setKingInCheck(null)
-          setCurrentMoveIndex(parsedMoves.length - 1)
-          
-          // Determine whose turn it is based on the last move
-          const lastMove = parsedMoves[parsedMoves.length - 1]
-          if (lastMove?.color === PLAYER_TURN_CHECKMATE) {
-            // Game is over, keep the turn as it was
-            const checkmatedColor = lastMove.text.includes('White wins') ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
-            setCheckmate(checkmatedColor)
-            setKingInCheck(checkmatedColor)
-            // Set turn to the winner (who made the last move before checkmate)
-            const lastMoveColor = parsedMoves[parsedMoves.length - 2]?.color || PLAYER_TURN_WHITE
-            setCurrentTurn(lastMoveColor === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE)
-          } else {
-            setCheckmate(null)
-            // Determine next turn: if last move was by white, it's black's turn and vice versa
-            if (lastMove?.color === PLAYER_TURN_WHITE) {
-              setCurrentTurn(PLAYER_TURN_BLACK)
-            } else if (lastMove?.color === PLAYER_TURN_BLACK) {
-              setCurrentTurn(PLAYER_TURN_WHITE)
-            } else {
-              // If no moves, white starts
-              setCurrentTurn(PLAYER_TURN_WHITE)
-            }
-          }
-          
-          alert('Game loaded successfully!')
-        } catch (error) {
-          console.error('Error parsing file:', error)
-          alert('Error loading file. Please make sure it is a valid chess game export.')
-        }
+        handleFileLoad(event.target.result)
       }
       
       reader.readAsText(file)
@@ -1094,14 +1102,24 @@ function AnalyzeGames() {
                 // Don't show protection if king is in checkmate
                 const showProtection = isProtected && !isKingInCheckmateSquare
                 const isFlashing = flashingPieces.some(fp => fp.row === rowIndex && fp.col === colIndex)
+                let validMoveClass = ''
+                if (isValidMove) {
+                  validMoveClass = wouldBeAttacked ? 'valid-move-attacked' : 'valid-move'
+                }
+                let checkStatusClass = ''
+                if (isKingInCheckmateSquare) {
+                  checkStatusClass = 'in-checkmate'
+                } else if (isKingInCheckSquare) {
+                  checkStatusClass = 'in-check'
+                }
                 
                 return (
-                  <div
+                  <button
                     key={`${rowIndex}-${colIndex}`}
                     className={`chess-square ${isLight ? 'light' : 'dark'} ${
                       isSelected ? 'selected' : ''
                     } ${
-                      isValidMove ? (wouldBeAttacked ? 'valid-move-attacked' : 'valid-move') : ''
+                      validMoveClass
                     } ${
                       isValidAttack ? 'valid-attack' : ''
                     } ${
@@ -1109,7 +1127,7 @@ function AnalyzeGames() {
                     } ${
                       showProtection ? `protected protected-${protectionColor}-${Math.min(defenderCount, 4)}` : ''
                     } ${
-                      isKingInCheckmateSquare ? 'in-checkmate' : (isKingInCheckSquare ? 'in-check' : '')
+                      checkStatusClass
                     } ${
                       isFlashing ? 'defender-flash' : ''
                     }`}
@@ -1127,7 +1145,7 @@ function AnalyzeGames() {
                         onDragEnd={handleDragEnd}
                       />
                     )}
-                  </div>
+                  </button>
                 )
               })
             ))}
@@ -1206,7 +1224,7 @@ function AnalyzeGames() {
                 title={move.sealed ? 'Imported move (locked)' : ''}
               >
                 <span className="move-number">{move.moveNumber}.</span>
-                <span className="move-text">{move.sealed ? '🔒 ' : ''}{move.text}</span>
+                <span className="move-text">{move.text}</span>
               </div>
             ))}
           </div>
