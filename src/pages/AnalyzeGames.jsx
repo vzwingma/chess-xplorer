@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './AnalyzeGames.css'
+import { exportMoveHistory as exportMoveHistoryController, importMoveHistory as importMoveHistoryController } from './ImportExportGamesController'
 import plateauImage from '../resources/plateau.png'
 import blackT from '../resources/black-T.png'
 import blackC from '../resources/black-C.png'
@@ -728,100 +729,12 @@ function AnalyzeGames() {
   }
 
   const exportMoveHistory = () => {
-    if (moveHistory.length === 0) return
-    
-    const timestamp = new Date().toISOString().replaceAll(/[:.]/g, '-').slice(0, -5)
-    let content = 'Chess Game Move History\n'
-    content += '======================\n'
-    content += `Date: ${new Date().toLocaleString()}\n\n`
-    
-    moveHistory.forEach(move => {
-      content += `${move.moveNumber}. ${move.text}\n`
-    })
-    
-    content += '\n\nFinal Board State\n'
-    content += '=================\n\n'
-    content += '    a   b   c   d   e   f   g   h\n'
-    content += '  +---+---+---+---+---+---+---+---+\n'
-    
-    // Map piece codes to unicode symbols
-    const pieceSymbols = {
-      'white-p': '♙', 'white-T': '♖', 'white-C': '♘', 'white-F': '♗', 'white-Q': '♕', 'white-R': '♔',
-      'black-p': '♟', 'black-T': '♜', 'black-C': '♞', 'black-F': '♝', 'black-Q': '♛', 'black-R': '♚'
-    }
-    
-    board.forEach((row, rowIndex) => {
-      const rank = 8 - rowIndex
-      content += `${rank} |`
-      row.forEach(piece => {
-        const symbol = piece ? pieceSymbols[piece] || '?' : ' '
-        content += ` ${symbol} |`
-      })
-      content += ` ${rank}\n`
-      content += '  +---+---+---+---+---+---+---+---+\n'
-    })
-    
-    content += '    a   b   c   d   e   f   g   h\n'
-    
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `chess-game-${timestamp}.txt`
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
+    exportMoveHistoryController(moveHistory, board)
   }
 
-  // Helper function to parse move history from file content
-  const parseMoveHistory = (historySection) => {
-    const moveLines = historySection.split('\n').filter(line => 
-      line.match(/^\d+\.\s*(.+)$/)
-    )
-    
-    return moveLines.map((line, index, array) => {
-      const match = line.match(/^(\d+(?:\.\d+)?)\.\s*(.+)$/)
-      if (match) {
-        const moveNumber = Number.parseFloat(match[1])
-        const text = match[2].trim()
-        let color = PLAYER_TURN_WHITE
-        if (text.includes('⚫')) color = PLAYER_TURN_BLACK
-        if (text.includes('CHECKMATE')) color = PLAYER_TURN_CHECKMATE
-        const sealed = index < array.length - 1
-        return { moveNumber, text, color, sealed }
-      }
-      return null
-    }).filter(move => move !== null)
-  }
 
-  // Helper function to parse board state from file content
-  const parseBoardState = (boardSection) => {
-    const symbolToPiece = {
-      '♙': 'white-p', '♖': 'white-T', '♘': 'white-C', '♗': 'white-F', '♕': 'white-Q', '♔': 'white-R',
-      '♟': 'black-p', '♜': 'black-T', '♞': 'black-C', '♝': 'black-F', '♛': 'black-Q', '♚': 'black-R'
-    }
-    
-    const boardLines = boardSection.split('\n').filter(line => line.match(/^\d\s*\|/))
-    const newBoard = new Array(8).fill(null).map(() => new Array(8).fill(''))
-    
-    boardLines.forEach(line => {
-      const match = line.match(/^(\d)\s*\|(.+)\|\s*\d$/)
-      if (match) {
-        const rank = Number.parseInt(match[1])
-        const rowIndex = 8 - rank
-        const squares = match[2].split('|').map(s => s.trim())
-        
-        squares.forEach((symbol, colIndex) => {
-          if (symbol && symbol !== ' ' && symbolToPiece[symbol]) {
-            newBoard[rowIndex][colIndex] = symbolToPiece[symbol]
-          }
-        })
-      }
-    })
-    
-    return newBoard
-  }
+
+
 
   // Helper function to update game state after import
   const updateGameStateAfterImport = (parsedMoves, newBoard) => {
@@ -854,83 +767,12 @@ function AnalyzeGames() {
     }
   }
 
-  // Helper function to handle file loading
-  const handleFileLoad = (content) => {
-    try {
-      const historySection = content.split('Final Board State')[0]
-      const parsedMoves = parseMoveHistory(historySection)
-      
-      const boardSection = content.split('Final Board State')[1]
-      if (!boardSection) {
-        alert('Could not find board state in file')
-        return
-      }
-      
-      const newBoard = parseBoardState(boardSection)
-      
-      if (parsedMoves.length > 0) {
-        parsedMoves[parsedMoves.length - 1].boardState = newBoard.map(row => [...row])
-        parsedMoves[parsedMoves.length - 1].movedPiecesState = new Set()
-      }
-      
-      updateGameStateAfterImport(parsedMoves, newBoard)
-      alert('Game loaded successfully!')
-    } catch (error) {
-      console.error('Error parsing file:', error)
-      alert('Error loading file. Please make sure it is a valid chess game export.')
-    }
-  }
 
-/**
- * Imports a chess game's move history and board state from a text file.
- * 
- * Creates a file input dialog that accepts .txt files containing exported chess games.
- * The file should contain a move history section and a "Final Board State" section with
- * the board represented using Unicode chess symbols.
- * 
- * The function performs the following operations:
- * - Parses move history lines in the format "moveNumber. moveText"
- * - Extracts player turns (white/black) based on chess piece symbols (⚫)
- * - Marks all moves as sealed except the last one
- * - Parses the board state from Unicode chess symbols to internal piece notation
- * - Updates the game state including board, move history, current turn, and check/checkmate status
- * - Determines the next player's turn based on the last move or checkmate state
- * 
- * @function
- * @throws {Error} Displays an alert if the file format is invalid or parsing fails
- * @fires input#onchange - Triggers when a file is selected
- * 
- * @example
- * // File format expected:
- * // 1. ♙ e2-e4
- * // 1.5. ⚫ ♟ e7-e5
- * // 2. ♘ g1-f3
- * // Final Board State
- * // 8 | ♜ | ♞ | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ | 8
- * // ...
- * 
- * @see {@link PLAYER_TURN_WHITE}
- * @see {@link PLAYER_TURN_BLACK}
- * @see {@link PLAYER_TURN_CHECKMATE}
- */
+
   const importMoveHistory = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.txt'
-    
-    input.onchange = (e) => {
-      const file = e.target.files[0]
-      if (!file) return
-      
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        handleFileLoad(event.target.result)
-      }
-      
-      reader.readAsText(file)
-    }
-    
-    input.click()
+    importMoveHistoryController((parsedMoves, newBoard) => {
+      updateGameStateAfterImport(parsedMoves, newBoard)
+    })
   }
 
   // Generic toggle handler for attacks or protection
@@ -979,6 +821,91 @@ function AnalyzeGames() {
     ? `🏁 CHECKMATE! ${winner} wins!`
     : turnMessage
 
+  // Helper function to calculate square classes
+  const getSquareClasses = (rowIndex, colIndex, piece) => {
+    const isLight = (rowIndex + colIndex) % 2 === 0
+    const isSelected = selectedSquare && selectedSquare.row === rowIndex && selectedSquare.col === colIndex
+    const validMove = validMoves.find(m => m.row === rowIndex && m.col === colIndex)
+    const isValidMove = validMove && !validMove.isAttack
+    const isValidAttack = validMove?.isAttack
+    const wouldBeAttacked = validMove?.wouldBeAttacked
+    
+    const attackInfo = attackedPieces.find(ap => ap.row === rowIndex && ap.col === colIndex)
+    const isUnderAttack = !!attackInfo
+    const attackedBy = attackInfo ? attackInfo.attackedBy : ''
+    
+    const protectedInfo = protectedPieces.find(pp => pp.row === rowIndex && pp.col === colIndex)
+    const isProtected = !!protectedInfo
+    const defenderCount = protectedInfo ? protectedInfo.defenders : 0
+    const protectionColor = protectedInfo ? protectedInfo.color : ''
+    
+    const isKingInCheckSquare = kingInCheck && piece === `${kingInCheck}-R`
+    const isKingInCheckmateSquare = checkmate && piece === `${checkmate}-R`
+    const showUnderAttack = isUnderAttack && !isKingInCheckSquare && !isKingInCheckmateSquare
+    const showProtection = isProtected && !isKingInCheckmateSquare
+    
+    const flashingPieceInfo = flashingPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
+    const flashingAttackedInfo = flashingAttackedPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
+    
+    let flashClass = ''
+    if (flashingPieceInfo) {
+      flashClass = `defender-flash-${flashingPieceInfo.color}`
+    } else if (flashingAttackedInfo) {
+      flashClass = `attacked-flash-${flashingAttackedInfo.color}`
+    }
+    
+    let validMoveClass = ''
+    if (isValidMove) {
+      validMoveClass = wouldBeAttacked ? 'valid-move-attacked' : 'valid-move'
+    }
+    
+    let validAttackClass = ''
+    if (isValidAttack) {
+      validAttackClass = wouldBeAttacked ? 'valid-attack valid-attack-unsafe' : 'valid-attack valid-attack-safe'
+    }
+    
+    let checkStatusClass = ''
+    if (isKingInCheckmateSquare) {
+      checkStatusClass = 'in-checkmate'
+    } else if (isKingInCheckSquare) {
+      checkStatusClass = 'in-check'
+    }
+    
+    return `chess-square ${isLight ? 'light' : 'dark'} ${
+      isSelected ? 'selected' : ''
+    } ${validMoveClass} ${validAttackClass} ${
+      showUnderAttack ? `under-attack under-attack-${attackedBy}` : ''
+    } ${
+      showProtection ? `protected protected-${protectionColor}-${Math.min(defenderCount, 4)}` : ''
+    } ${checkStatusClass} ${flashClass}`
+  }
+
+  // Helper function to render a chess square
+  const renderSquare = (piece, rowIndex, colIndex) => {
+    const squareClasses = getSquareClasses(rowIndex, colIndex, piece)
+    
+    return (
+      <div
+        key={`${rowIndex}-${colIndex}`}
+        className={squareClasses}
+        onDragOver={handleDragOver}
+        onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
+        onClick={() => piece ? handlePieceClick(piece, rowIndex, colIndex) : handleSquareClick(rowIndex, colIndex)}
+      >
+        {piece && (
+          <img 
+            src={pieceImages[piece]} 
+            alt={piece} 
+            className="chess-piece-img"
+            draggable
+            onDragStart={(e) => handleDragStart(e, piece, rowIndex, colIndex)}
+            onDragEnd={handleDragEnd}
+          />
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="analyze-games">
       <header className="analyze-header">
@@ -996,89 +923,7 @@ function AnalyzeGames() {
           </div>
           <div className="chess-board" style={{ backgroundImage: `url(${plateauImage})` }}>
             {board.map((row, rowIndex) => (
-              row.map((piece, colIndex) => {
-                const isLight = (rowIndex + colIndex) % 2 === 0
-                const isSelected = selectedSquare && selectedSquare.row === rowIndex && selectedSquare.col === colIndex
-                const validMove = validMoves.find(m => m.row === rowIndex && m.col === colIndex)
-                const isValidMove = validMove && !validMove.isAttack
-                const isValidAttack = validMove?.isAttack
-                const wouldBeAttacked = validMove?.wouldBeAttacked
-                const attackInfo = attackedPieces.find(ap => ap.row === rowIndex && ap.col === colIndex)
-                const isUnderAttack = !!attackInfo
-                const attackedBy = attackInfo ? attackInfo.attackedBy : ''
-                const protectedInfo = protectedPieces.find(pp => pp.row === rowIndex && pp.col === colIndex)
-                const isProtected = !!protectedInfo
-                const defenderCount = protectedInfo ? protectedInfo.defenders : 0
-                const protectionColor = protectedInfo ? protectedInfo.color : ''
-                const isKingInCheckSquare = kingInCheck && piece === `${kingInCheck}-R`
-                const isKingInCheckmateSquare = checkmate && piece === `${checkmate}-R`
-                // Don't show under-attack styling if king is in check (show in-check styling instead)
-                const showUnderAttack = isUnderAttack && !isKingInCheckSquare && !isKingInCheckmateSquare
-                // Don't show protection if king is in checkmate
-                const showProtection = isProtected && !isKingInCheckmateSquare
-                const isFlashing = flashingPieces.some(fp => fp.row === rowIndex && fp.col === colIndex)
-                const flashingPieceInfo = flashingPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
-                const isFlashingAttacked = flashingAttackedPieces.some(fp => fp.row === rowIndex && fp.col === colIndex)
-                const flashingAttackedInfo = flashingAttackedPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
-                let flashClass = ''
-                if (isFlashing && flashingPieceInfo) {
-                  flashClass = `defender-flash-${flashingPieceInfo.color}`
-                } else if (isFlashingAttacked && flashingAttackedInfo) {
-                  flashClass = `attacked-flash-${flashingAttackedInfo.color}`
-                }
-                let validMoveClass = ''
-                if (isValidMove) {
-                  validMoveClass = wouldBeAttacked ? 'valid-move-attacked' : 'valid-move'
-                }
-                
-                // For valid attacks, add a class to indicate if piece would be safe or attacked
-                let validAttackClass = ''
-                if (isValidAttack) {
-                  validAttackClass = wouldBeAttacked ? 'valid-attack valid-attack-unsafe' : 'valid-attack valid-attack-safe'
-                }
-                
-                let checkStatusClass = ''
-                if (isKingInCheckmateSquare) {
-                  checkStatusClass = 'in-checkmate'
-                } else if (isKingInCheckSquare) {
-                  checkStatusClass = 'in-check'
-                }
-                
-                return (
-                  <div
-                    key={`${rowIndex}-${colIndex}`}
-                    className={`chess-square ${isLight ? 'light' : 'dark'} ${
-                      isSelected ? 'selected' : ''
-                    } ${
-                      validMoveClass
-                    } ${
-                      validAttackClass
-                    } ${
-                      showUnderAttack ? `under-attack under-attack-${attackedBy}` : ''
-                    } ${
-                      showProtection ? `protected protected-${protectionColor}-${Math.min(defenderCount, 4)}` : ''
-                    } ${
-                      checkStatusClass
-                    } ${
-                      flashClass
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, rowIndex, colIndex)}
-                    onClick={() => piece ? handlePieceClick(piece, rowIndex, colIndex) : handleSquareClick(rowIndex, colIndex)}
-                  >
-                    {piece && (
-                      <img 
-                        src={pieceImages[piece]} 
-                        alt={piece} 
-                        className="chess-piece-img"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, piece, rowIndex, colIndex)}
-                        onDragEnd={handleDragEnd}
-                      />
-                    )}
-                  </div>
-                )
-              })
+              row.map((piece, colIndex) => renderSquare(piece, rowIndex, colIndex))
             ))}
           </div>
         </div>
