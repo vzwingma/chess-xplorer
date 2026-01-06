@@ -728,6 +728,7 @@ function AnalyzeGames() {
     setCurrentMoveIndex(0)
   }
 
+  // Export current game to a text file
   const exportMoveHistory = () => {
     exportMoveHistoryController(moveHistory, board)
   }
@@ -767,8 +768,7 @@ function AnalyzeGames() {
     }
   }
 
-
-
+  // Import game from a text file
   const importMoveHistory = () => {
     importMoveHistoryController((parsedMoves, newBoard) => {
       updateGameStateAfterImport(parsedMoves, newBoard)

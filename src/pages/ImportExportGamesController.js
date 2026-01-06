@@ -82,11 +82,11 @@ export const exportMoveHistory = (moveHistory, board) => {
  */
 const parseMoveHistory = (historySection) => {
   const moveLines = historySection.split('\n').filter(line => 
-    line.match(/^\d+\.\s*(.+)$/)
+    new RegExp(/^\d+\.\s*(.+)$/).exec(line)
   )
   
   return moveLines.map((line, index, array) => {
-    const match = line.match(/^(\d+(?:\.\d+)?)\.\s*(.+)$/)
+    const match = new RegExp(/^(\d+(?:\.\d+)?)\.\s*(.+)$/).exec(line)
     if (match) {
       const moveNumber = Number.parseFloat(match[1])
       const text = match[2].trim()
@@ -116,11 +116,11 @@ const parseBoardState = (boardSection) => {
     '♟': 'black-p', '♜': 'black-T', '♞': 'black-C', '♝': 'black-F', '♛': 'black-Q', '♚': 'black-R'
   }
   
-  const boardLines = boardSection.split('\n').filter(line => line.match(/^\d\s*\|/))
+  const boardLines = boardSection.split('\n').filter(line => new RegExp(/^\d\s*\|/).exec(line))
   const newBoard = new Array(8).fill(null).map(() => new Array(8).fill(''))
   
   boardLines.forEach(line => {
-    const match = line.match(/^(\d)\s*\|(.+)\|\s*\d$/)
+    const match = new RegExp(/^(\d)\s*\|(.+)\|\s*\d$/).exec(line)
     if (match) {
       const rank = Number.parseInt(match[1])
       const rowIndex = 8 - rank
@@ -190,8 +190,8 @@ export const importMoveHistory = (onImportSuccess) => {
         const newBoard = parseBoardState(boardSection)
         
         if (parsedMoves.length > 0) {
-          parsedMoves[parsedMoves.length - 1].boardState = newBoard.map(row => [...row])
-          parsedMoves[parsedMoves.length - 1].movedPiecesState = new Set()
+          parsedMoves.at(-1).boardState = newBoard.map(row => [...row])
+          parsedMoves.at(-1).movedPiecesState = new Set()
         }
         
         // Call the success callback with parsed data
