@@ -2,6 +2,25 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './AnalyzeGames.css'
 import { exportMoveHistory as exportMoveHistoryController, importMoveHistory as importMoveHistoryController } from './ImportExportGamesController'
+import {
+  PLAYER_TURN_WHITE,
+  PLAYER_TURN_BLACK,
+  PLAYER_TURN_CHECKMATE,
+  initialBoardState,
+  getPieceName,
+  toChessNotation,
+  getOpponentColor,
+  forEachBoardSquare,
+  isLegalMove as isLegalMoveHelper,
+  isSquareUnderAttack as isSquareUnderAttackHelper,
+  isKingInCheck as isKingInCheckHelper,
+  hasLegalMoves as hasLegalMovesHelper,
+  isCheckmate as isCheckmateHelper,
+  getValidMovesForPiece as getValidMovesForPieceHelper,
+  calculateAttackedPieces as calculateAttackedPiecesHelper,
+  calculateDefenders as calculateDefendersHelper,
+  calculateProtectedPieces as calculateProtectedPiecesHelper
+} from './AnalyseGames.helper'
 import plateauImage from '../resources/plateau.png'
 import blackT from '../resources/black-T.png'
 import blackC from '../resources/black-C.png'
@@ -19,11 +38,6 @@ import whiteP from '../resources/white-p.png'
 function AnalyzeGames() {
   const navigate = useNavigate()
 
-  // Constants for player colors
-  const PLAYER_TURN_WHITE = 'white'
-  const PLAYER_TURN_BLACK = 'black'
-  const PLAYER_TURN_CHECKMATE = 'checkmate'
-
   // Mapping of piece codes to images
   const pieceImages = {
     'black-T': blackT,
@@ -39,18 +53,6 @@ function AnalyzeGames() {
     'white-R': whiteR,
     'white-p': whiteP,
   }
-
-  // Initialize chess board with starting position (using piece codes)
-  const initialBoardState = [
-    ['black-T', 'black-C', 'black-F', 'black-Q', 'black-R', 'black-F', 'black-C', 'black-T'],
-    ['black-p', 'black-p', 'black-p', 'black-p', 'black-p', 'black-p', 'black-p', 'black-p'],
-    ['', '', '', '', '', '', '', ''],
-    ['', '', '', '', '', '', '', ''],
-    ['', '', '', '', '', '', '', ''],
-    ['', '', '', '', '', '', '', ''],
-    ['white-p', 'white-p', 'white-p', 'white-p', 'white-p', 'white-p', 'white-p', 'white-p'],
-    ['white-T', 'white-C', 'white-F', 'white-Q', 'white-R', 'white-F', 'white-C', 'white-T']
-  ]
 
   const [board, setBoard] = useState(initialBoardState)
   const [draggedPiece, setDraggedPiece] = useState(null)
@@ -74,296 +76,41 @@ function AnalyzeGames() {
   const [checkmate, setCheckmate] = useState(null) // Track checkmate (PLAYER_WHITE or PLAYER_BLACK or null)
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0) // Track current position in history
 
-  // Convert piece code to readable name
-  const getPieceName = (pieceCode) => {
-    const pieceType = pieceCode.split('-')[1]
-    const pieceIcons = {
-      'p': '♟',
-      'T': '♜',
-      'C': '♞',
-      'F': '♝',
-      'Q': '♛',
-      'R': '♚'
-    }
-    return pieceIcons[pieceType] || ''
-  }
-
-  // Convert row/col to chess notation (e.g., e2, e4)
-  const toChessNotation = (row, col) => {
-    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    const ranks = ['8', '7', '6', '5', '4', '3', '2', '1']
-    return files[col] + ranks[row]
-  }
-
-  // Get opponent color
-  const getOpponentColor = (color) => {
-    return color === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
-  }
-
-  // Iterate over all board squares with a callback
-  const forEachBoardSquare = (callback) => {
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        if (callback(row, col) === false) return false
-      }
-    }
-    return true
-  }
-
-  // Find king position on the board
-  const findKingPosition = (color, boardToCheck = board) => {
-    let kingPos = null
-    forEachBoardSquare((row, col) => {
-      if (boardToCheck[row][col] === `${color}-R`) {
-        kingPos = { row, col }
-        return false // Stop iteration
-      }
-    })
-    return kingPos
-  }
-
-  // Check if a king is in check
-  const isKingInCheck = (color, boardToCheck = board) => {
-    const kingPos = findKingPosition(color, boardToCheck)
-    if (!kingPos) return false
-    return isSquareUnderAttack(kingPos.row, kingPos.col, color, boardToCheck)
-  }
-
-  // Check if a player has any legal moves
-  const hasLegalMoves = (color, boardToCheck = board) => {
-    for (let fromRow = 0; fromRow < 8; fromRow++) {
-      for (let fromCol = 0; fromCol < 8; fromCol++) {
-        const piece = boardToCheck[fromRow][fromCol]
-        if (piece?.startsWith(color)) {
-          // Try all possible moves
-          for (let toRow = 0; toRow < 8; toRow++) {
-            for (let toCol = 0; toCol < 8; toCol++) {
-              if (isLegalMove(piece, fromRow, fromCol, toRow, toCol, boardToCheck)) {
-                // Simulate the move and check if king is still in check
-                const testBoard = boardToCheck.map(row => [...row])
-                testBoard[toRow][toCol] = piece
-                testBoard[fromRow][fromCol] = ''
-                
-                // Handle castling in test board
-                const pieceType = piece.split('-')[1]
-                if (pieceType === 'R' && Math.abs(toCol - fromCol) === 2) {
-                  const isKingside = toCol > fromCol
-                  const rookFromCol = isKingside ? 7 : 0
-                  const rookToCol = isKingside ? 5 : 3
-                  const rook = testBoard[fromRow][rookFromCol]
-                  testBoard[fromRow][rookToCol] = rook
-                  testBoard[fromRow][rookFromCol] = ''
-                }
-                
-                if (!isKingInCheck(color, testBoard)) {
-                  return true // Found a legal move
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return false // No legal moves found
-  }
-
-  // Check for checkmate
-  const isCheckmate = (color, boardToCheck = board) => {
-    return isKingInCheck(color, boardToCheck) && !hasLegalMoves(color, boardToCheck)
-  }
-
-  // Helper function to check if a square is empty
-  const isEmpty = (row, col, boardToCheck = board) => {
-    return boardToCheck[row]?.[col] === ''
-  }
-
-  // Helper function to check if a square has an opponent piece
-  const isOpponent = (row, col, color, boardToCheck = board) => {
-    if (!boardToCheck[row]?.[col]) return false
-    return boardToCheck[row][col].startsWith(getOpponentColor(color))
-  }
-
-  // Validate legal moves for each piece type
-  const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck = board, allowSameColor = false) => {
-    if (fromRow === toRow && fromCol === toCol) return false
-    
-    const color = piece.split('-')[0]
-    const pieceType = piece.split('-')[1]
-    const rowDiff = toRow - fromRow
-    const colDiff = toCol - fromCol
-    
-    // Check if destination has same color piece (only block if not checking protection)
-    if (!allowSameColor && boardToCheck[toRow][toCol]?.startsWith(color)) {
-      return false
-    }
-
-    switch (pieceType) {
-      case 'p': // Pawn
-        { const direction = color === PLAYER_TURN_WHITE ? -1 : 1
-        const startRow = color === PLAYER_TURN_WHITE ? 6 : 1
-        
-        // Move forward one square
-        if (colDiff === 0 && rowDiff === direction && isEmpty(toRow, toCol, boardToCheck)) {
-          return true
-        }
-        
-        // Move forward two squares from starting position
-        if (colDiff === 0 && rowDiff === 2 * direction && fromRow === startRow && 
-            isEmpty(toRow, toCol, boardToCheck) && isEmpty(fromRow + direction, fromCol, boardToCheck)) {
-          return true
-        }
-        
-        // Capture diagonally (or protect same-color piece when checking protection)
-        if (Math.abs(colDiff) === 1 && rowDiff === direction) {
-          if (allowSameColor && boardToCheck[toRow][toCol]?.startsWith(color)) {
-            return true // Protecting same-color piece
-          }
-          if (isOpponent(toRow, toCol, color, boardToCheck)) {
-            return true // Can capture opponent
-          }
-        }
-        return false }
-
-      case 'T': // Tower (Rook)
-        if (rowDiff !== 0 && colDiff !== 0) return false
-        return isPathClear(fromRow, fromCol, toRow, toCol, boardToCheck)
-
-      case 'C': // Knight
-        return (Math.abs(rowDiff) === 2 && Math.abs(colDiff) === 1) ||
-               (Math.abs(rowDiff) === 1 && Math.abs(colDiff) === 2)
-
-      case 'F': // Bishop
-        if (Math.abs(rowDiff) !== Math.abs(colDiff)) return false
-        return isPathClear(fromRow, fromCol, toRow, toCol, boardToCheck)
-
-      case 'Q': // Queen
-        if (rowDiff !== 0 && colDiff !== 0 && Math.abs(rowDiff) !== Math.abs(colDiff)) {
-          return false
-        }
-        return isPathClear(fromRow, fromCol, toRow, toCol, boardToCheck)
-
-      case 'R': // King
-        // Normal king move
-        if (Math.abs(rowDiff) <= 1 && Math.abs(colDiff) <= 1) {
-          return true
-        }
-        
-        // Castling
-        if (!allowSameColor && rowDiff === 0 && Math.abs(colDiff) === 2) {
-          const kingKey = `${fromRow}-${fromCol}`
-          // King must not have moved
-          if (movedPieces.has(kingKey)) return false
-          
-          // King must not be in check
-          if (isSquareUnderAttack(fromRow, fromCol, color, boardToCheck)) return false
-          
-          // Determine if kingside or queenside castling
-          const isKingside = colDiff > 0
-          const rookCol = isKingside ? 7 : 0
-          const rookKey = `${fromRow}-${rookCol}`
-          const rook = boardToCheck[fromRow][rookCol]
-          
-          // Rook must be present and not have moved
-          if (!rook?.endsWith('-T') || movedPieces.has(rookKey)) return false
-          
-          // Path between king and rook must be clear
-          const direction = isKingside ? 1 : -1
-          const passCol = fromCol + direction
-          const endCol = isKingside ? 6 : 2
-          
-          // Check squares between king and rook
-          for (let c = Math.min(fromCol, rookCol) + 1; c < Math.max(fromCol, rookCol); c++) {
-            if (!isEmpty(fromRow, c, boardToCheck)) return false
-          }
-          
-          // King cannot pass through or end up in check
-          if (isSquareUnderAttack(fromRow, passCol, color, boardToCheck)) return false
-          if (isSquareUnderAttack(fromRow, endCol, color, boardToCheck)) return false
-          
-          return true
-        }
-        
-        return false
-
-      default:
-        return false
-    }
-  }
-
-  // Check if a square is under attack by opponent
+  // Wrapper functions for helpers that need access to component state
   const isSquareUnderAttack = (row, col, color, boardToCheck = board) => {
-    const opponentColor = getOpponentColor(color)
-    let isAttacked = false
-    forEachBoardSquare((r, c) => {
-      const piece = boardToCheck[r][c]
-      if (piece?.startsWith(opponentColor)) {
-        if (isLegalMove(piece, r, c, row, col, boardToCheck, false)) {
-          isAttacked = true
-          return false // Stop iteration
-        }
-      }
-    })
-    return isAttacked
+    return isSquareUnderAttackHelper(row, col, color, boardToCheck, movedPieces, isLegalMove)
   }
 
-  // Check if path is clear (for rook, bishop, queen)
-  const isPathClear = (fromRow, fromCol, toRow, toCol, boardToCheck = board) => {
-    const rowStep = Math.sign(toRow - fromRow)
-    const colStep = Math.sign(toCol - fromCol)
-    
-    let currentRow = fromRow + rowStep
-    let currentCol = fromCol + colStep
-    
-    while (currentRow !== toRow || currentCol !== toCol) {
-      if (!isEmpty(currentRow, currentCol, boardToCheck)) {
-        return false
-      }
-      currentRow += rowStep
-      currentCol += colStep
-    }
-    
-    return true
+  const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck = board, allowSameColor = false) => {
+    return isLegalMoveHelper(piece, fromRow, fromCol, toRow, toCol, boardToCheck, movedPieces, isSquareUnderAttack, allowSameColor)
   }
 
-  // Calculate all valid moves for a piece
+  const isKingInCheck = (color, boardToCheck = board) => {
+    return isKingInCheckHelper(color, boardToCheck, movedPieces, isSquareUnderAttack)
+  }
+
+  const hasLegalMoves = (color, boardToCheck = board) => {
+    return hasLegalMovesHelper(color, boardToCheck, movedPieces, isLegalMove, isKingInCheck)
+  }
+
+  const isCheckmate = (color, boardToCheck = board) => {
+    return isCheckmateHelper(color, boardToCheck, movedPieces, isKingInCheck, hasLegalMoves)
+  }
+
   const getValidMovesForPiece = (piece, fromRow, fromCol) => {
-    const moves = []
-    const color = piece.split('-')[0]
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        if (isLegalMove(piece, fromRow, fromCol, row, col)) {
-          const isAttack = board[row][col] !== ''
-          
-          // Create a test board with the piece moved to check if it would be under attack
-          const testBoard = board.map(r => [...r])
-          testBoard[row][col] = piece
-          testBoard[fromRow][fromCol] = ''
-          const wouldBeAttacked = isSquareUnderAttack(row, col, color, testBoard)
-          
-          moves.push({ row, col, isAttack, wouldBeAttacked })
-        }
-      }
-    }
-    return moves
+    return getValidMovesForPieceHelper(piece, fromRow, fromCol, board, isLegalMove, isSquareUnderAttack)
   }
 
-  // Calculate all attacked pieces by the current player
   const calculateAttackedPieces = (boardState, attackingColor) => {
-    const attacked = []
-    forEachBoardSquare((fromRow, fromCol) => {
-      const piece = boardState[fromRow][fromCol]
-      if (piece?.startsWith(attackingColor)) {
-        forEachBoardSquare((toRow, toCol) => {
-          const targetPiece = boardState[toRow][toCol]
-          if (targetPiece && !targetPiece.startsWith(attackingColor)) {
-            if (isLegalMove(piece, fromRow, fromCol, toRow, toCol, boardState)) {
-              attacked.push({ row: toRow, col: toCol, attackedBy: attackingColor })
-            }
-          }
-        })
-      }
-    })
-    return attacked
+    return calculateAttackedPiecesHelper(boardState, attackingColor, isLegalMove)
+  }
+
+  const calculateDefenders = (targetRow, targetCol, boardState = board) => {
+    return calculateDefendersHelper(targetRow, targetCol, boardState, isLegalMove)
+  }
+
+  const calculateProtectedPieces = (boardState, protectingColor) => {
+    return calculateProtectedPiecesHelper(boardState, protectingColor, isLegalMove)
   }
 
   // Recalculate attacked and protected pieces based on toggle states
@@ -385,26 +132,6 @@ function AnalyzeGames() {
       protections.push(...calculateProtectedPieces(boardState, PLAYER_TURN_BLACK))
     }
     setProtectedPieces(protections)
-  }
-
-  // Calculate which pieces defend a specific piece
-  const calculateDefenders = (targetRow, targetCol, boardState = board) => {
-    const targetPiece = boardState[targetRow][targetCol]
-    if (!targetPiece) return []
-    
-    const defenders = []
-    const pieceColor = targetPiece.split('-')[0]
-    
-    forEachBoardSquare((fromRow, fromCol) => {
-      const piece = boardState[fromRow][fromCol]
-      if (piece?.startsWith(pieceColor) && !(fromRow === targetRow && fromCol === targetCol)) {
-        if (isLegalMove(piece, fromRow, fromCol, targetRow, targetCol, boardState, true)) {
-          defenders.push({ row: fromRow, col: fromCol, color: pieceColor })
-        }
-      }
-    })
-    
-    return defenders
   }
 
   // Flash defender pieces with timeout
@@ -442,32 +169,6 @@ function AnalyzeGames() {
         setFlashingAttackedPieces([])
       }, 1000)
     }
-  }
-
-  // Calculate protected pieces (defended by same color) with defender count
-  const calculateProtectedPieces = (boardState, protectingColor) => {
-    const protectionMap = new Map()
-    
-    forEachBoardSquare((fromRow, fromCol) => {
-      const piece = boardState[fromRow][fromCol]
-      if (piece?.startsWith(protectingColor)) {
-        forEachBoardSquare((toRow, toCol) => {
-          const targetPiece = boardState[toRow][toCol]
-          // Check if target is same color and can be defended
-          if (targetPiece?.startsWith(protectingColor) && 
-              !(fromRow === toRow && fromCol === toCol)) {
-            if (isLegalMove(piece, fromRow, fromCol, toRow, toCol, boardState, true)) {
-              const key = `${toRow}-${toCol}`
-              const current = protectionMap.get(key) || { row: toRow, col: toCol, defenders: 0, color: protectingColor }
-              current.defenders += 1
-              protectionMap.set(key, current)
-            }
-          }
-        })
-      }
-    })
-    
-    return Array.from(protectionMap.values())
   }
 
   // Execute a move and update game state (shared logic for click and drag-drop)
