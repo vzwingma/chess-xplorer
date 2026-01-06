@@ -943,15 +943,15 @@ function AnalyzeGames() {
   return (
     <div className="analyze-games">
       <header className="analyze-header">
-        <button className="back-button" onClick={() => navigate('/')}>
-          ← Back
-        </button>
         <h1>📊 Analyze Games</h1>
-        <p className="subtitle">Deep dive into chess games with powerful analysis tools</p>
       </header>
 
       <main className="analyze-content">
         <div className="chess-board-container">
+          
+                  <button className="back-button" onClick={() => navigate('/')}>
+          ← Back
+        </button>
           <div className="turn-indicator">
             {checkmateMessage}
           </div>
@@ -1081,19 +1081,19 @@ function AnalyzeGames() {
               className={`toggle-btn ${showWhiteProtection ? 'active' : ''}`}
               onClick={() => handleToggleProtection(PLAYER_TURN_WHITE)}
             >
-              ⚪ All White Protections <span className={`status-light ${showWhiteProtection ? 'on' : 'off'}`}>●</span>
+              ⚪ White Protections <span className={`status-light ${showWhiteProtection ? 'on' : 'off'}`}>●</span>
             </button>
             <button 
               className={`toggle-btn ${showBlackProtection ? 'active' : ''}`}
               onClick={() => handleToggleProtection(PLAYER_TURN_BLACK)}
             >
-              ⚫ All Black Protections <span className={`status-light ${showBlackProtection ? 'on' : 'off'}`}>●</span>
+              ⚫ Black Protections <span className={`status-light ${showBlackProtection ? 'on' : 'off'}`}>●</span>
             </button>
             <button 
               className={`toggle-btn ${showDefenderFlash ? 'active' : ''}`}
               onClick={() => setShowDefenderFlash(!showDefenderFlash)}
             >
-              ✨ Selected piece protection <span className={`status-light ${showDefenderFlash ? 'on' : 'off'}`}>●</span>
+              ✨ Selected piece <span className={`status-light ${showDefenderFlash ? 'on' : 'off'}`}>●</span>
             </button>
           </div>
         </div>

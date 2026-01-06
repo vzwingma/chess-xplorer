@@ -59,8 +59,8 @@
 
 .chess-board {
   display: grid;
-  grid-template-columns: repeat(8, 85px);
-  grid-template-rows: repeat(8, 85px);
+  grid-template-columns: repeat(8, 80px);
+  grid-template-rows: repeat(8, 80px);
   border: 3px solid var(--color-secondary);
   box-shadow: var(--shadow-board);
   border-radius: 4px;
@@ -298,8 +298,7 @@
   border: 1px solid var(--color-border);
   min-width: 300px;
   max-width: 400px;
-  height: 85vh;
-  display: flex;
+display: flex;
   flex-direction: column;
 }
 
@@ -457,7 +456,45 @@
   }
 }
 
-@media (max-width: 1200px) {
+/* Media Queries for Responsive Design */
+
+/* Ultrawide screens (3440x1440 and similar) */
+@media (min-width: 2560px) {
+  .chess-board {
+    grid-template-columns: repeat(8, 105px);
+    grid-template-rows: repeat(8, 105px);
+  }
+  
+  .analysis-panel,
+  .move-history-panel {
+    height: 75vh;
+  }
+  
+  .files {
+    letter-spacing: 4rem;
+    padding-left: 0.5rem;
+  }
+}
+
+/* Standard HD screens (1900x1080 and similar) */
+@media (min-width: 1400px) and (max-width: 2559px) {
+  .chess-board {
+    grid-template-columns: repeat(8, 85px);
+    grid-template-rows: repeat(8, 85px);
+  }
+  
+  .analysis-panel,
+  .move-history-panel {
+    height: 85vh;
+  }
+  
+  .files {
+    letter-spacing: 3.2rem;
+    padding-left: 0.5rem;
+  }
+}
+
+@media (max-width: 1399px) {
   .chess-board {
     grid-template-columns: repeat(8, 80px);
     grid-template-rows: repeat(8, 80px);
@@ -471,7 +508,13 @@
     letter-spacing: 2.04rem;
     padding-left: 2.08rem;
     font-size: 0.8rem;
-    color: #b10b0b;
+  }
+}
+
+@media (max-width: 1200px) {
+  .analysis-panel,
+  .move-history-panel {
+    height: 75vh;
   }
 }
 

@@ -1,4 +1,4 @@
-# Chess-Xplorer ♟️
+# ♟️ Chess-Xplorer ♟️
 
 Outil interactif d'analyse et de visualisation d'échecs développé avec React + Vite.
 
@@ -86,9 +86,9 @@ Chess-Xplorer est une application web complète permettant de jouer aux échecs 
 
 ## 🛠️ Technologies utilisées
 
-- **React 18.3.1** : Framework frontend
-- **Vite 5.4.2** : Build tool et dev server
-- **React Router DOM** : Navigation entre pages
+- **React 19.0.0** : Framework frontend
+- **Vite 7.3.0** : Build tool et dev server
+- **React Router DOM 7.11.0** : Navigation entre pages
 - **CSS3** : Animations et styles personnalisés
 - **File API** : Import/Export de parties
 
