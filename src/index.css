@@ -13,10 +13,10 @@
   -moz-osx-font-smoothing: grayscale;
 
   /* Shared CSS Variables */
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-cta: linear-gradient(135deg, #5568d3 0%, #5d3a7d 100%);
-  --color-primary: #667eea;
-  --color-secondary: #764ba2;
+  --gradient-primary: linear-gradient(135deg, #f4a83e 0%, #d4922e 100%);
+  --gradient-cta: linear-gradient(135deg, #e09d33 0%, #b87a1f 100%);
+  --color-primary: #f4a83e;
+  --color-secondary: #d4922e;
   --color-text-muted: #888;
   --color-text-light: #aaa;
   --color-border: rgba(255, 255, 255, 0.1);
@@ -25,8 +25,8 @@
   --bg-hover: rgba(255, 255, 255, 0.1);
   --bg-card: rgba(255, 255, 255, 0.05);
   --bg-dark: rgba(60, 60, 60, 0.7);
-  --shadow-primary: 0 5px 15px rgba(102, 126, 234, 0.4);
-  --shadow-board: 0 10px 40px rgba(102, 126, 234, 0.3);
+  --shadow-primary: 0 5px 15px rgba(244, 168, 62, 0.4);
+  --shadow-board: 0 10px 40px rgba(244, 168, 62, 0.3);
   --transition-standard: all 0.2s ease;
   --transition-transform: transform 0.2s ease, box-shadow 0.2s ease;
   --border-radius: 6px;

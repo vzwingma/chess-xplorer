@@ -65,7 +65,7 @@ function AnalyzeGames() {
   const [showBlackProtection, setShowBlackProtection] = useState(false)
   const [flashingPieces, setFlashingPieces] = useState([])
   const [showDefenderFlash, setShowDefenderFlash] = useState(true)
-  const [showAttackedFlash, setShowAttackedFlash] = useState(false)
+  const [showAttackedFlash, setShowAttackedFlash] = useState(true)
   const [flashingAttackedPieces, setFlashingAttackedPieces] = useState([])
   const [moveHistory, setMoveHistory] = useState([{ moveNumber: 0, text: 'Initial position', color: PLAYER_TURN_WHITE, boardState: initialBoardState, movedPiecesState: new Set() }])
   const [movedPieces, setMovedPieces] = useState(new Set()) // Track pieces that have moved
@@ -1020,7 +1020,12 @@ function AnalyzeGames() {
                 const flashingPieceInfo = flashingPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
                 const isFlashingAttacked = flashingAttackedPieces.some(fp => fp.row === rowIndex && fp.col === colIndex)
                 const flashingAttackedInfo = flashingAttackedPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
-                const flashClass = isFlashing && flashingPieceInfo ? `defender-flash-${flashingPieceInfo.color}` : (isFlashingAttacked && flashingAttackedInfo ? `attacked-flash-${flashingAttackedInfo.color}` : '')
+                let flashClass = ''
+                if (isFlashing && flashingPieceInfo) {
+                  flashClass = `defender-flash-${flashingPieceInfo.color}`
+                } else if (isFlashingAttacked && flashingAttackedInfo) {
+                  flashClass = `attacked-flash-${flashingAttackedInfo.color}`
+                }
                 let validMoveClass = ''
                 if (isValidMove) {
                   validMoveClass = wouldBeAttacked ? 'valid-move-attacked' : 'valid-move'
@@ -1147,17 +1152,20 @@ function AnalyzeGames() {
         <div className="move-history-panel">
           <h3>Move History</h3>
           <div className="moves-container">
-            {moveHistory.map((move, index) => (
-              <div 
-                key={`${move.moveNumber}-${move.text}`} 
-                className={`move-item ${index === currentMoveIndex ? 'active' : ''} ${move.sealed ? 'sealed' : ''}`}
-                onClick={() => handleMoveClick(index)}
-                title={move.sealed ? 'Imported move (locked)' : ''}
-              >
-                <span className="move-number">{move.moveNumber}.</span>
-                <span className="move-text">{move.text}</span>
-              </div>
-            ))}
+            {[...moveHistory].reverse().map((move, index) => {
+              const originalIndex = moveHistory.length - 1 - index
+              return (
+                <div 
+                  key={`${move.moveNumber}-${move.text}`} 
+                  className={`move-item ${originalIndex === currentMoveIndex ? 'active' : ''} ${move.sealed ? 'sealed' : ''}`}
+                  onClick={() => handleMoveClick(originalIndex)}
+                  title={move.sealed ? 'Imported move (locked)' : ''}
+                >
+                  <span className="move-number">{move.moveNumber}.</span>
+                  <span className="move-text">{move.text}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
       </main>
