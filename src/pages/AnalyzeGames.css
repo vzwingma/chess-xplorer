@@ -67,8 +67,7 @@
   overflow: hidden;
   background-size: cover;
   background-position: center;
-  max-width: 90vw;
-  max-height: 75vh;
+
 }
 
 .chess-square {
@@ -288,7 +287,8 @@
   border: 1px solid var(--color-border);
   min-width: 300px;
   max-width: 400px;
-display: flex;
+  height: 85vh;
+  display: flex;
   flex-direction: column;
 }
 
@@ -471,7 +471,7 @@ display: flex;
 }
 
 /* Standard HD screens (1900x1080 and similar) */
-@media (min-width: 1400px) and (max-width: 2559px) {
+@media (min-width: 1400px) and (max-width: 1990px) {
   .chess-board {
     grid-template-columns: repeat(8, 85px);
     grid-template-rows: repeat(8, 85px);
