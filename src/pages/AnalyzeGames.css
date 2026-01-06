@@ -458,7 +458,21 @@
   font-weight: 500;
   transition: var(--transition-standard);
   margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
+
+.toggle-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-icon {
+  font-size: 1.1em;
+}
+
 
 .toggle-btn:hover {
   background: var(--bg-hover);

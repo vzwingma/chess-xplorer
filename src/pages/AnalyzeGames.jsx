@@ -299,7 +299,6 @@ function AnalyzeGames() {
       setSelectedSquare({ row, col })
       const moves = getValidMovesForPiece(piece, row, col)
       setValidMoves(moves)
-      setAttackedPieces([])
       flashDefenders(row, col)
       return
     }
@@ -311,7 +310,6 @@ function AnalyzeGames() {
       setSelectedSquare({ row, col })
       const moves = getValidMovesForPiece(piece, row, col)
       setValidMoves(moves)
-      setAttackedPieces([])
     }
     
     // Show defenders for any piece (including opponent pieces)
@@ -441,11 +439,12 @@ function AnalyzeGames() {
     setValidMoves([])
     setAttackedPieces([])
     setProtectedPieces([])
-    setMoveHistory([{ moveNumber: 0, text: 'Initial position', color: PLAYER_TURN_WHITE, boardState: initialBoardState, movedPiecesState: new Set() }])
+    setMoveHistory([])
     setMovedPieces(new Set())
     setKingInCheck(null)
     setCheckmate(null)
     setCurrentMoveIndex(0)
+    setCapturedPieces({ white: [], black: [] })
   }
 
   // Export current game to a text file
@@ -706,19 +705,19 @@ function AnalyzeGames() {
               className={`toggle-btn ${showWhiteAttacks ? 'active' : ''}`}
               onClick={() => handleToggleAttacks(PLAYER_TURN_WHITE)}
             >
-              ⚪ White Attacks <span className={`status-light ${showWhiteAttacks ? 'on' : 'off'}`}>●</span>
+              <span className="toggle-content"><span className="toggle-icon">⚪</span><span className="toggle-label">White Attacks</span></span> <span className={`status-light ${showWhiteAttacks ? 'on' : 'off'}`}>●</span>
             </button>
             <button 
               className={`toggle-btn ${showBlackAttacks ? 'active' : ''}`}
               onClick={() => handleToggleAttacks(PLAYER_TURN_BLACK)}
             >
-              ⚫ Black Attacks <span className={`status-light ${showBlackAttacks ? 'on' : 'off'}`}>●</span>
+              <span className="toggle-content"><span className="toggle-icon">⚫</span><span className="toggle-label">Black Attacks</span></span> <span className={`status-light ${showBlackAttacks ? 'on' : 'off'}`}>●</span>
             </button>
             <button 
               className={`toggle-btn ${showAttackedFlash ? 'active' : ''}`}
               onClick={() => setShowAttackedFlash(!showAttackedFlash)}
             >
-              🎯 Selected piece <span className={`status-light ${showAttackedFlash ? 'on' : 'off'}`}>●</span>
+              <span className="toggle-content"><span className="toggle-icon">🎯</span><span className="toggle-label">Selected piece</span></span> <span className={`status-light ${showAttackedFlash ? 'on' : 'off'}`}>●</span>
             </button>
           </div>
           <div className="attack-toggles">
@@ -727,19 +726,19 @@ function AnalyzeGames() {
               className={`toggle-btn ${showWhiteProtection ? 'active' : ''}`}
               onClick={() => handleToggleProtection(PLAYER_TURN_WHITE)}
             >
-              ⚪ White Protections <span className={`status-light ${showWhiteProtection ? 'on' : 'off'}`}>●</span>
+              <span className="toggle-content"><span className="toggle-icon">⚪</span><span className="toggle-label">White Protections</span></span> <span className={`status-light ${showWhiteProtection ? 'on' : 'off'}`}>●</span>
             </button>
             <button 
               className={`toggle-btn ${showBlackProtection ? 'active' : ''}`}
               onClick={() => handleToggleProtection(PLAYER_TURN_BLACK)}
             >
-              ⚫ Black Protections <span className={`status-light ${showBlackProtection ? 'on' : 'off'}`}>●</span>
+              <span className="toggle-content"><span className="toggle-icon">⚫</span><span className="toggle-label">Black Protections</span></span> <span className={`status-light ${showBlackProtection ? 'on' : 'off'}`}>●</span>
             </button>
             <button 
               className={`toggle-btn ${showDefenderFlash ? 'active' : ''}`}
               onClick={() => setShowDefenderFlash(!showDefenderFlash)}
             >
-              ✨ Selected piece <span className={`status-light ${showDefenderFlash ? 'on' : 'off'}`}>●</span>
+              <span className="toggle-content"><span className="toggle-icon">✨</span><span className="toggle-label">Selected piece</span></span> <span className={`status-light ${showDefenderFlash ? 'on' : 'off'}`}>●</span>
             </button>
           </div>
         </div>
