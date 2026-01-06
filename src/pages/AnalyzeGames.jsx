@@ -659,7 +659,7 @@ function AnalyzeGames() {
                 <div className="captured-icons">
                   {capturedPieces.white.map((piece, index) => (
                     <img 
-                      key={`captured-white-${index}`}
+                      key={`captured-white-${piece}-${index}`}
                       src={pieceImages[piece]} 
                       alt={piece}
                       className="captured-piece-icon"
@@ -671,7 +671,7 @@ function AnalyzeGames() {
                 <div className="captured-icons">
                   {capturedPieces.black.map((piece, index) => (
                     <img 
-                      key={`captured-black-${index}`}
+                      key={`captured-black-${piece}-${index}`}
                       src={pieceImages[piece]} 
                       alt={piece}
                       className="captured-piece-icon"
