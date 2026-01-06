@@ -76,6 +76,15 @@ function AnalyzeGames() {
   const [checkmate, setCheckmate] = useState(null) // Track checkmate (PLAYER_WHITE or PLAYER_BLACK or null)
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0) // Track current position in history
   const [capturedPieces, setCapturedPieces] = useState({ white: [], black: [] }) // Track captured pieces
+  const [playNumber, setPlayNumber] = useState(() => {
+    // Generate initial play number: random 8-digit number
+    return Math.floor(10000000 + Math.random() * 90000000).toString()
+  })
+
+  // Function to generate a new play number
+  const generatePlayNumber = () => {
+    return Math.floor(10000000 + Math.random() * 90000000).toString()
+  }
 
   // Wrapper functions for helpers that need access to component state
   const isSquareUnderAttack = (row, col, color, boardToCheck = board) => {
@@ -445,11 +454,12 @@ function AnalyzeGames() {
     setCheckmate(null)
     setCurrentMoveIndex(0)
     setCapturedPieces({ white: [], black: [] })
+    setPlayNumber(generatePlayNumber())
   }
 
   // Export current game to a text file
   const exportMoveHistory = () => {
-    exportMoveHistoryController(moveHistory, board)
+    exportMoveHistoryController(moveHistory, board, playNumber, capturedPieces)
   }
 
 
@@ -457,7 +467,7 @@ function AnalyzeGames() {
 
 
   // Helper function to update game state after import
-  const updateGameStateAfterImport = (parsedMoves, newBoard) => {
+  const updateGameStateAfterImport = (parsedMoves, newBoard, capturedPieces) => {
     setBoard(newBoard)
     setMoveHistory(parsedMoves)
     setSelectedSquare(null)
@@ -467,6 +477,7 @@ function AnalyzeGames() {
     setMovedPieces(new Set())
     setKingInCheck(null)
     setCurrentMoveIndex(parsedMoves.length - 1)
+    setCapturedPieces(capturedPieces || { white: [], black: [] })
     
     const lastMove = parsedMoves[parsedMoves.length - 1]
     if (lastMove?.color === PLAYER_TURN_CHECKMATE) {
@@ -489,8 +500,8 @@ function AnalyzeGames() {
 
   // Import game from a text file
   const importMoveHistory = () => {
-    importMoveHistoryController((parsedMoves, newBoard) => {
-      updateGameStateAfterImport(parsedMoves, newBoard)
+    importMoveHistoryController((parsedMoves, newBoard, capturedPieces) => {
+      updateGameStateAfterImport(parsedMoves, newBoard, capturedPieces)
     })
   }
 
@@ -631,7 +642,7 @@ function AnalyzeGames() {
   return (
     <div className="analyze-games">
       <header className="analyze-header">
-        <h1>📊 Analyze Game</h1>
+        <h1>📊 Analyze Game #{playNumber}</h1>
         <div className="turn-indicator">
           {checkmateMessage}
         </div>

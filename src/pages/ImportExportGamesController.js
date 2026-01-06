@@ -12,27 +12,37 @@ const PLAYER_TURN_CHECKMATE = 'checkmate'
  * Exports the current chess game's move history and board state to a text file.
  * 
  * Creates a downloadable text file containing:
+ * - Play number identifier
  * - Date and timestamp
  * - Complete move history with move numbers
+ * - Captured pieces
  * - Final board state using Unicode chess symbols
  * 
  * @param {Array} moveHistory - Array of move objects containing moveNumber, text, color, etc.
  * @param {Array<Array<string>>} board - 8x8 array representing the current board state
+ * @param {string} playNumber - Unique identifier for this game session
  * @returns {void}
  */
-export const exportMoveHistory = (moveHistory, board) => {
+export const exportMoveHistory = (moveHistory, board, playNumber, capturedPieces) => {
   if (moveHistory.length === 0) return
   
-  const timestamp = new Date().toISOString().replaceAll(/[:.]/g, '-').slice(0, -5)
+  const timestamp = playNumber || new Date().toISOString().replaceAll(/[:.]/g, '-').slice(0, -5)
   let content = 'Chess Game Move History\n'
   content += '======================\n'
+  content += `Play Number: ${playNumber}\n`
   content += `Date: ${new Date().toLocaleString()}\n\n`
   
   moveHistory.forEach(move => {
     content += `${move.moveNumber}. ${move.text}\n`
   })
-  
-  content += '\n\nFinal Board State\n'
+    // Add captured pieces section
+  if (capturedPieces) {
+    content += '\n\nCaptured Pieces\n'
+    content += '===============\n'
+    content += `White pieces captured: ${capturedPieces.white.join(', ')}\n`
+    content += `Black pieces captured: ${capturedPieces.black.join(', ')}\n`
+  }
+    content += '\n\nFinal Board State\n'
   content += '=================\n\n'
   content += '    a   b   c   d   e   f   g   h\n'
   content += '  +---+---+---+---+---+---+---+---+\n'
@@ -98,6 +108,41 @@ const parseMoveHistory = (historySection) => {
     }
     return null
   }).filter(move => move !== null)
+}
+
+/**
+ * Parses captured pieces from file content.
+ * 
+ * Extracts the list of captured pieces from the "Captured Pieces" section.
+ * 
+ * @param {string} content - The full file content
+ * @returns {Object} Object with white and black arrays of captured pieces
+ * @private
+ */
+const parseCapturedPieces = (content) => {
+  const capturedPieces = { white: [], black: [] }
+  
+  const capturedSection = content.split('Captured Pieces')[1]?.split('Final Board State')[0]
+  if (!capturedSection) {
+    return capturedPieces
+  }
+  
+  const lines = capturedSection.split('\n')
+  lines.forEach(line => {
+    if (line.includes('White pieces captured:')) {
+      const pieces = line.split(':')[1]?.trim()
+      if (pieces && pieces !== '') {
+        capturedPieces.white = pieces.split(', ').filter(p => p)
+      }
+    } else if (line.includes('Black pieces captured:')) {
+      const pieces = line.split(':')[1]?.trim()
+      if (pieces && pieces !== '') {
+        capturedPieces.black = pieces.split(', ').filter(p => p)
+      }
+    }
+  })
+  
+  return capturedPieces
 }
 
 /**
@@ -188,14 +233,16 @@ export const importMoveHistory = (onImportSuccess) => {
         }
         
         const newBoard = parseBoardState(boardSection)
+        const capturedPieces = parseCapturedPieces(content)
         
         if (parsedMoves.length > 0) {
           parsedMoves.at(-1).boardState = newBoard.map(row => [...row])
           parsedMoves.at(-1).movedPiecesState = new Set()
+          parsedMoves.at(-1).capturedPiecesState = capturedPieces
         }
         
         // Call the success callback with parsed data
-        onImportSuccess(parsedMoves, newBoard)
+        onImportSuccess(parsedMoves, newBoard, capturedPieces)
       } catch (error) {
         console.error('Error parsing file:', error)
         alert('Error loading file. Please make sure it is a valid chess game export.')
