@@ -562,7 +562,10 @@ function AnalyzeGames() {
     
     let validAttackClass = ''
     if (isValidAttack) {
-      validAttackClass = wouldBeAttacked ? 'valid-attack valid-attack-unsafe' : 'valid-attack valid-attack-safe'
+      if(!showAttackedFlash){
+        validAttackClass = 'valid-attack '
+      }
+      validAttackClass += wouldBeAttacked ? 'valid-attack-unsafe' : 'valid-attack-safe'
     }
     
     let checkStatusClass = ''
