@@ -613,15 +613,14 @@ function AnalyzeGames() {
   return (
     <div className="analyze-games">
       <header className="analyze-header">
-        <h1>📊 Analyze Games</h1>
+        <h1>📊 Analyze Game</h1>
       </header>
-
+        
       <main className="analyze-content">
-        <div className="chess-board-container">
-          
-                  <button className="back-button" onClick={() => navigate('/')}>
+        <button className="back-button" onClick={() => navigate('/')}>
           ← Back
         </button>
+        <div className="chess-board-container">
           <div className="turn-indicator">
             {checkmateMessage}
           </div>

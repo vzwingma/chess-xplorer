@@ -1,11 +1,11 @@
 .analyze-games {
   min-height: 90vh;
-  padding: 2rem;
+  padding: 0.1rem;
 }
 
 .analyze-header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
   position: relative;
 }
 
