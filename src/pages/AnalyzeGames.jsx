@@ -65,6 +65,8 @@ function AnalyzeGames() {
   const [showBlackProtection, setShowBlackProtection] = useState(false)
   const [flashingPieces, setFlashingPieces] = useState([])
   const [showDefenderFlash, setShowDefenderFlash] = useState(true)
+  const [showAttackedFlash, setShowAttackedFlash] = useState(false)
+  const [flashingAttackedPieces, setFlashingAttackedPieces] = useState([])
   const [moveHistory, setMoveHistory] = useState([{ moveNumber: 0, text: 'Initial position', color: PLAYER_TURN_WHITE, boardState: initialBoardState, movedPiecesState: new Set() }])
   const [movedPieces, setMovedPieces] = useState(new Set()) // Track pieces that have moved
   const [kingInCheck, setKingInCheck] = useState(null) // Track which king is in check (PLAYER_WHITE or PLAYER_BLACK or null)
@@ -415,6 +417,32 @@ function AnalyzeGames() {
     }
   }
 
+  // Flash attacked pieces with timeout
+  const flashAttackedPieces = (row, col) => {
+    if (showAttackedFlash) {
+      const piece = board[row][col]
+      if (!piece) return
+      
+      const color = piece.split('-')[0]
+      const attacked = []
+      
+      // Find all pieces this piece can attack
+      forEachBoardSquare((toRow, toCol) => {
+        const targetPiece = board[toRow][toCol]
+        if (targetPiece && !targetPiece.startsWith(color)) {
+          if (isLegalMove(piece, row, col, toRow, toCol, board)) {
+            attacked.push({ row: toRow, col: toCol, color: targetPiece.split('-')[0] })
+          }
+        }
+      })
+      
+      setFlashingAttackedPieces(attacked)
+      setTimeout(() => {
+        setFlashingAttackedPieces([])
+      }, 1000)
+    }
+  }
+
   // Calculate protected pieces (defended by same color) with defender count
   const calculateProtectedPieces = (boardState, protectingColor) => {
     const protectionMap = new Map()
@@ -536,7 +564,13 @@ function AnalyzeGames() {
       }
       
       // If clicking on same color piece
-      if (color !== currentTurn) return
+      if (color !== currentTurn) {
+        // Allow clicking on opponent pieces to show their defenders
+        setSelectedSquare(null)
+        setValidMoves([])
+        flashDefenders(row, col)
+        return
+      }
       
       // If clicking the same piece, deselect
       if (selectedSquare.row === row && selectedSquare.col === col) {
@@ -554,15 +588,20 @@ function AnalyzeGames() {
       return
     }
     
-    // No piece selected yet - only select if it's the current player's piece
-    if (color !== currentTurn) return
-
-    // Select piece and show valid moves
-    setSelectedSquare({ row, col })
-    const moves = getValidMovesForPiece(piece, row, col)
-    setValidMoves(moves)
-    setAttackedPieces([])
+    // No piece selected yet - select any piece to show its defenders
+    // Only allow moving if it's the current player's piece
+    if (color === currentTurn) {
+      // Select piece and show valid moves
+      setSelectedSquare({ row, col })
+      const moves = getValidMovesForPiece(piece, row, col)
+      setValidMoves(moves)
+      setAttackedPieces([])
+    }
+    
+    // Show defenders for any piece (including opponent pieces)
     flashDefenders(row, col)
+    // Show attacked pieces if toggle is on
+    flashAttackedPieces(row, col)
   }
 
   // Handle square click for moving selected piece
@@ -979,7 +1018,9 @@ function AnalyzeGames() {
                 const showProtection = isProtected && !isKingInCheckmateSquare
                 const isFlashing = flashingPieces.some(fp => fp.row === rowIndex && fp.col === colIndex)
                 const flashingPieceInfo = flashingPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
-                const flashClass = isFlashing && flashingPieceInfo ? `defender-flash-${flashingPieceInfo.color}` : ''
+                const isFlashingAttacked = flashingAttackedPieces.some(fp => fp.row === rowIndex && fp.col === colIndex)
+                const flashingAttackedInfo = flashingAttackedPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
+                const flashClass = isFlashing && flashingPieceInfo ? `defender-flash-${flashingPieceInfo.color}` : (isFlashingAttacked && flashingAttackedInfo ? `attacked-flash-${flashingAttackedInfo.color}` : '')
                 let validMoveClass = ''
                 if (isValidMove) {
                   validMoveClass = wouldBeAttacked ? 'valid-move-attacked' : 'valid-move'
@@ -1035,29 +1076,28 @@ function AnalyzeGames() {
               })
             ))}
           </div>
-          <div className="board-coordinates">
-            <div className="files">a b c d e f g h</div>
-          </div>
         </div>
 
         <div className="analysis-panel">
           <h3>Analysis Tools</h3>
           <div className="tool-buttons">
-            <button 
-              className="tool-btn import-btn"
-              onClick={importMoveHistory}
-              title="Import game from text file"
-            >
-              📂 Import
-            </button>
-            <button 
-              className="tool-btn export-btn"
-              onClick={exportMoveHistory}
-              disabled={moveHistory.length === 0}
-              title="Export move history to text file"
-            >
-              💾 Export
-            </button>
+            <div className="button-row">
+              <button 
+                className="tool-btn import-btn"
+                onClick={importMoveHistory}
+                title="Import game from text file"
+              >
+                📂 Import
+              </button>
+              <button 
+                className="tool-btn export-btn"
+                onClick={exportMoveHistory}
+                disabled={moveHistory.length === 0}
+                title="Export move history to text file"
+              >
+                💾 Export
+              </button>
+            </div>
             <button className="tool-btn" onClick={resetBoard}>Reset Board</button>
           </div>
           <div className="attack-toggles">
@@ -1073,6 +1113,12 @@ function AnalyzeGames() {
               onClick={() => handleToggleAttacks(PLAYER_TURN_BLACK)}
             >
               ⚫ Black Attacks <span className={`status-light ${showBlackAttacks ? 'on' : 'off'}`}>●</span>
+            </button>
+            <button 
+              className={`toggle-btn ${showAttackedFlash ? 'active' : ''}`}
+              onClick={() => setShowAttackedFlash(!showAttackedFlash)}
+            >
+              🎯 Selected piece <span className={`status-light ${showAttackedFlash ? 'on' : 'off'}`}>●</span>
             </button>
           </div>
           <div className="attack-toggles">
