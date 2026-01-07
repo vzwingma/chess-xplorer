@@ -216,48 +216,43 @@ export const importMoveHistory = (onImportSuccess) => {
   input.type = 'file'
   input.accept = '.txt'
   
-  input.onchange = (e) => {
+  input.onchange = async (e) => {
     const file = e.target.files[0]
     if (!file) return
     
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      try {
-        const content = event.target.result
-        const historySection = content.split('Final Board State')[0]
-        const parsedMoves = parseMoveHistory(historySection)
-        
-        // Extract Play Number from the file
-        let playNumber = null
-        const playNumberMatch = content.match(/Play Number:\s*(.+)/)
-        if (playNumberMatch) {
-          playNumber = playNumberMatch[1].trim()
-        }
-        
-        const boardSection = content.split('Final Board State')[1]
-        if (!boardSection) {
-          alert('Could not find board state in file')
-          return
-        }
-        
-        const newBoard = parseBoardState(boardSection)
-        const capturedPieces = parseCapturedPieces(content)
-        
-        if (parsedMoves.length > 0) {
-          parsedMoves.at(-1).boardState = newBoard.map(row => [...row])
-          parsedMoves.at(-1).movedPiecesState = new Set()
-          parsedMoves.at(-1).capturedPiecesState = capturedPieces
-        }
-        
-        // Call the success callback with parsed data including the playNumber
-        onImportSuccess(parsedMoves, newBoard, capturedPieces, playNumber)
-      } catch (error) {
-        console.error('Error parsing file:', error)
-        alert('Error loading file. Please make sure it is a valid chess game export.')
+    try {
+      const content = await file.text()
+      const historySection = content.split('Final Board State')[0]
+      const parsedMoves = parseMoveHistory(historySection)
+      
+      // Extract Play Number from the file
+      let playNumber = null
+      const playNumberMatch = content.match(/Play Number:\s*(.+)/)
+      if (playNumberMatch) {
+        playNumber = playNumberMatch[1].trim()
       }
+      
+      const boardSection = content.split('Final Board State')[1]
+      if (!boardSection) {
+        alert('Could not find board state in file')
+        return
+      }
+      
+      const newBoard = parseBoardState(boardSection)
+      const capturedPieces = parseCapturedPieces(content)
+      
+      if (parsedMoves.length > 0) {
+        parsedMoves.at(-1).boardState = newBoard.map(row => [...row])
+        parsedMoves.at(-1).movedPiecesState = new Set()
+        parsedMoves.at(-1).capturedPiecesState = capturedPieces
+      }
+      
+      // Call the success callback with parsed data including the playNumber
+      onImportSuccess(parsedMoves, newBoard, capturedPieces, playNumber)
+    } catch (error) {
+      console.error('Error parsing file:', error)
+      alert('Error loading file. Please make sure it is a valid chess game export.')
     }
-    
-    reader.readAsText(file)
   }
   
   input.click()
