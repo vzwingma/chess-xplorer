@@ -132,12 +132,12 @@ const parseCapturedPieces = (content) => {
     if (line.includes('White pieces captured:')) {
       const pieces = line.split(':')[1]?.trim()
       if (pieces && pieces !== '') {
-        capturedPieces.white = pieces.split(', ').filter(p => p)
+        capturedPieces.white = pieces.split(', ').filter(Boolean)
       }
     } else if (line.includes('Black pieces captured:')) {
       const pieces = line.split(':')[1]?.trim()
       if (pieces && pieces !== '') {
-        capturedPieces.black = pieces.split(', ').filter(p => p)
+        capturedPieces.black = pieces.split(', ').filter(Boolean)
       }
     }
   })

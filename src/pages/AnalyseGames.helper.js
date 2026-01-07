@@ -97,46 +97,98 @@ export const isPathClear = (fromRow, fromCol, toRow, toCol, boardToCheck) => {
   return true
 }
 
+// Helper function to validate pawn moves
+const isLegalPawnMove = (color, { rowDiff, colDiff, fromRow, toRow, toCol }, boardToCheck, allowSameColor) => {
+  const direction = color === PLAYER_TURN_WHITE ? -1 : 1
+  const startRow = color === PLAYER_TURN_WHITE ? 6 : 1
+  
+  // Move forward one square
+  if (colDiff === 0 && rowDiff === direction && isEmpty(toRow, toCol, boardToCheck)) {
+    return true
+  }
+  
+  // Move forward two squares from starting position
+  if (colDiff === 0 && rowDiff === 2 * direction && fromRow === startRow) {
+    return isEmpty(toRow, toCol, boardToCheck) && isEmpty(fromRow + direction, toCol, boardToCheck)
+  }
+  
+  // Capture diagonally (or protect same-color piece)
+  if (Math.abs(colDiff) === 1 && rowDiff === direction) {
+    if (allowSameColor && boardToCheck[toRow][toCol]?.startsWith(color)) {
+      return true
+    }
+    return isOpponent(toRow, toCol, color, boardToCheck)
+  }
+  
+  return false
+}
+
+// Helper function to validate castling
+const canCastle = (context) => {
+  const { fromRow, fromCol, colDiff, color, boardToCheck, movedPieces, isSquareUnderAttackFn } = context
+  
+  const kingKey = `${fromRow}-${fromCol}`
+  if (movedPieces.has(kingKey)) return false
+  if (isSquareUnderAttackFn(fromRow, fromCol, color, boardToCheck)) return false
+  
+  const isKingside = colDiff > 0
+  const rookCol = isKingside ? 7 : 0
+  const rookKey = `${fromRow}-${rookCol}`
+  const rook = boardToCheck[fromRow][rookCol]
+  
+  if (!rook?.endsWith('-T') || movedPieces.has(rookKey)) return false
+  
+  // Check path is clear
+  for (let c = Math.min(fromCol, rookCol) + 1; c < Math.max(fromCol, rookCol); c++) {
+    if (!isEmpty(fromRow, c, boardToCheck)) return false
+  }
+  
+  // Check king's path is not under attack
+  const direction = isKingside ? 1 : -1
+  const passCol = fromCol + direction
+  const endCol = isKingside ? 6 : 2
+  
+  if (isSquareUnderAttackFn(fromRow, passCol, color, boardToCheck)) return false
+  if (isSquareUnderAttackFn(fromRow, endCol, color, boardToCheck)) return false
+  
+  return true
+}
+
+// Helper function to validate king moves
+const isLegalKingMove = (rowDiff, colDiff, fromRow, fromCol, color, boardToCheck, context) => {
+  const { movedPieces, isSquareUnderAttackFn, allowSameColor } = context
+  
+  // Normal king move
+  if (Math.abs(rowDiff) <= 1 && Math.abs(colDiff) <= 1) {
+    return true
+  }
+  
+  // Castling
+  if (!allowSameColor && rowDiff === 0 && Math.abs(colDiff) === 2) {
+    return canCastle({ fromRow, fromCol, colDiff, color, boardToCheck, movedPieces, isSquareUnderAttackFn })
+  }
+  
+  return false
+}
+
 // Validate legal moves for each piece type
-export const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck, movedPieces, isSquareUnderAttackFn, allowSameColor = false) => {
+export const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck, context = {}) => {
   if (fromRow === toRow && fromCol === toCol) return false
   
+  const { allowSameColor = false } = context
   const color = piece.split('-')[0]
   const pieceType = piece.split('-')[1]
   const rowDiff = toRow - fromRow
   const colDiff = toCol - fromCol
   
-  // Check if destination has same color piece (only block if not checking protection)
+  // Check if destination has same color piece
   if (!allowSameColor && boardToCheck[toRow][toCol]?.startsWith(color)) {
     return false
   }
 
   switch (pieceType) {
     case 'p': // Pawn
-      { const direction = color === PLAYER_TURN_WHITE ? -1 : 1
-      const startRow = color === PLAYER_TURN_WHITE ? 6 : 1
-      
-      // Move forward one square
-      if (colDiff === 0 && rowDiff === direction && isEmpty(toRow, toCol, boardToCheck)) {
-        return true
-      }
-      
-      // Move forward two squares from starting position
-      if (colDiff === 0 && rowDiff === 2 * direction && fromRow === startRow && 
-          isEmpty(toRow, toCol, boardToCheck) && isEmpty(fromRow + direction, fromCol, boardToCheck)) {
-        return true
-      }
-      
-      // Capture diagonally (or protect same-color piece when checking protection)
-      if (Math.abs(colDiff) === 1 && rowDiff === direction) {
-        if (allowSameColor && boardToCheck[toRow][toCol]?.startsWith(color)) {
-          return true // Protecting same-color piece
-        }
-        if (isOpponent(toRow, toCol, color, boardToCheck)) {
-          return true // Can capture opponent
-        }
-      }
-      return false }
+      return isLegalPawnMove(color, { rowDiff, colDiff, fromRow, toRow, toCol }, boardToCheck, allowSameColor)
 
     case 'T': // Tower (Rook)
       if (rowDiff !== 0 && colDiff !== 0) return false
@@ -157,47 +209,7 @@ export const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck,
       return isPathClear(fromRow, fromCol, toRow, toCol, boardToCheck)
 
     case 'R': // King
-      // Normal king move
-      if (Math.abs(rowDiff) <= 1 && Math.abs(colDiff) <= 1) {
-        return true
-      }
-      
-      // Castling
-      if (!allowSameColor && rowDiff === 0 && Math.abs(colDiff) === 2) {
-        const kingKey = `${fromRow}-${fromCol}`
-        // King must not have moved
-        if (movedPieces.has(kingKey)) return false
-        
-        // King must not be in check
-        if (isSquareUnderAttackFn(fromRow, fromCol, color, boardToCheck)) return false
-        
-        // Determine if kingside or queenside castling
-        const isKingside = colDiff > 0
-        const rookCol = isKingside ? 7 : 0
-        const rookKey = `${fromRow}-${rookCol}`
-        const rook = boardToCheck[fromRow][rookCol]
-        
-        // Rook must be present and not have moved
-        if (!rook?.endsWith('-T') || movedPieces.has(rookKey)) return false
-        
-        // Path between king and rook must be clear
-        const direction = isKingside ? 1 : -1
-        const passCol = fromCol + direction
-        const endCol = isKingside ? 6 : 2
-        
-        // Check squares between king and rook
-        for (let c = Math.min(fromCol, rookCol) + 1; c < Math.max(fromCol, rookCol); c++) {
-          if (!isEmpty(fromRow, c, boardToCheck)) return false
-        }
-        
-        // King cannot pass through or end up in check
-        if (isSquareUnderAttackFn(fromRow, passCol, color, boardToCheck)) return false
-        if (isSquareUnderAttackFn(fromRow, endCol, color, boardToCheck)) return false
-        
-        return true
-      }
-      
-      return false
+      return isLegalKingMove(rowDiff, colDiff, fromRow, fromCol, color, boardToCheck, context)
 
     default:
       return false
@@ -211,7 +223,7 @@ export const isSquareUnderAttack = (row, col, color, boardToCheck, movedPieces, 
   forEachBoardSquare((r, c) => {
     const piece = boardToCheck[r][c]
     if (piece?.startsWith(opponentColor)) {
-      if (isLegalMoveFn(piece, r, c, row, col, boardToCheck, movedPieces, false)) {
+      if (isLegalMoveFn(piece, r, c, row, col, boardToCheck, { movedPieces, allowSameColor: false })) {
         isAttacked = true
         return false // Stop iteration
       }
@@ -227,37 +239,58 @@ export const isKingInCheck = (color, boardToCheck, movedPieces, isSquareUnderAtt
   return isSquareUnderAttackFn(kingPos.row, kingPos.col, color, boardToCheck)
 }
 
+// Helper to simulate a move on a test board
+const simulateMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck) => {
+  const testBoard = boardToCheck.map(row => [...row])
+  testBoard[toRow][toCol] = piece
+  testBoard[fromRow][fromCol] = ''
+  
+  // Handle castling in test board
+  const pieceType = piece.split('-')[1]
+  if (pieceType === 'R' && Math.abs(toCol - fromCol) === 2) {
+    const isKingside = toCol > fromCol
+    const rookFromCol = isKingside ? 7 : 0
+    const rookToCol = isKingside ? 5 : 3
+    const rook = testBoard[fromRow][rookFromCol]
+    testBoard[fromRow][rookToCol] = rook
+    testBoard[fromRow][rookFromCol] = ''
+  }
+  
+  return testBoard
+}
+
+// Helper to check if a move is valid and doesn't leave king in check
+const isValidMoveForPiece = (piece, options) => {
+  const { fromRow, fromCol, toRow, toCol, boardToCheck, movedPieces, color, isLegalMoveFn, isKingInCheckFn } = options
+  if (!isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardToCheck, { movedPieces, allowSameColor: false })) {
+    return false
+  }
+  
+  const testBoard = simulateMove(piece, fromRow, fromCol, toRow, toCol, boardToCheck)
+  return !isKingInCheckFn(color, testBoard)
+}
+
+// Helper to check if a piece has any legal moves
+const pieceHasLegalMoves = (piece, fromRow, fromCol, options) => {
+  const { color, boardToCheck, movedPieces, isLegalMoveFn, isKingInCheckFn } = options
+  for (let toRow = 0; toRow < 8; toRow++) {
+    for (let toCol = 0; toCol < 8; toCol++) {
+      if (isValidMoveForPiece(piece, { fromRow, fromCol, toRow, toCol, boardToCheck, movedPieces, color, isLegalMoveFn, isKingInCheckFn })) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
 // Check if a player has any legal moves
 export const hasLegalMoves = (color, boardToCheck, movedPieces, isLegalMoveFn, isKingInCheckFn) => {
   for (let fromRow = 0; fromRow < 8; fromRow++) {
     for (let fromCol = 0; fromCol < 8; fromCol++) {
       const piece = boardToCheck[fromRow][fromCol]
       if (piece?.startsWith(color)) {
-        // Try all possible moves
-        for (let toRow = 0; toRow < 8; toRow++) {
-          for (let toCol = 0; toCol < 8; toCol++) {
-            if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardToCheck, movedPieces, false)) {
-              // Simulate the move and check if king is still in check
-              const testBoard = boardToCheck.map(row => [...row])
-              testBoard[toRow][toCol] = piece
-              testBoard[fromRow][fromCol] = ''
-              
-              // Handle castling in test board
-              const pieceType = piece.split('-')[1]
-              if (pieceType === 'R' && Math.abs(toCol - fromCol) === 2) {
-                const isKingside = toCol > fromCol
-                const rookFromCol = isKingside ? 7 : 0
-                const rookToCol = isKingside ? 5 : 3
-                const rook = testBoard[fromRow][rookFromCol]
-                testBoard[fromRow][rookToCol] = rook
-                testBoard[fromRow][rookFromCol] = ''
-              }
-              
-              if (!isKingInCheckFn(color, testBoard)) {
-                return true // Found a legal move
-              }
-            }
-          }
+        if (pieceHasLegalMoves(piece, fromRow, fromCol, { color, boardToCheck, movedPieces, isLegalMoveFn, isKingInCheckFn })) {
+          return true
         }
       }
     }
@@ -276,7 +309,7 @@ export const getValidMovesForPiece = (piece, fromRow, fromCol, board, isLegalMov
   const color = piece.split('-')[0]
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
-      if (isLegalMoveFn(piece, fromRow, fromCol, row, col, board, false)) {
+      if (isLegalMoveFn(piece, fromRow, fromCol, row, col, board, { allowSameColor: false })) {
         const isAttack = board[row][col] !== ''
         
         // Create a test board with the piece moved to check if it would be under attack
@@ -301,7 +334,7 @@ export const calculateAttackedPieces = (boardState, attackingColor, isLegalMoveF
       forEachBoardSquare((toRow, toCol) => {
         const targetPiece = boardState[toRow][toCol]
         if (targetPiece && !targetPiece.startsWith(attackingColor)) {
-          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardState, false)) {
+          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardState, { allowSameColor: false })) {
             attacked.push({ row: toRow, col: toCol, attackedBy: attackingColor })
           }
         }
@@ -322,7 +355,7 @@ export const calculateDefenders = (targetRow, targetCol, boardState, isLegalMove
   forEachBoardSquare((fromRow, fromCol) => {
     const piece = boardState[fromRow][fromCol]
     if (piece?.startsWith(pieceColor) && !(fromRow === targetRow && fromCol === targetCol)) {
-      if (isLegalMoveFn(piece, fromRow, fromCol, targetRow, targetCol, boardState, true)) {
+      if (isLegalMoveFn(piece, fromRow, fromCol, targetRow, targetCol, boardState, { allowSameColor: true })) {
         defenders.push({ row: fromRow, col: fromCol, color: pieceColor })
       }
     }
@@ -343,7 +376,7 @@ export const calculateProtectedPieces = (boardState, protectingColor, isLegalMov
         // Check if target is same color and can be defended
         if (targetPiece?.startsWith(protectingColor) && 
             !(fromRow === toRow && fromCol === toCol)) {
-          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardState, true)) {
+          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardState, { allowSameColor: true })) {
             const key = `${toRow}-${toCol}`
             const current = protectionMap.get(key) || { row: toRow, col: toCol, defenders: 0, color: protectingColor }
             current.defenders += 1

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './AnalyzeGames.css'
-import { exportMoveHistory as exportMoveHistoryController, importMoveHistory as importMoveHistoryController } from './ImportExportGamesController'
+import { exportMoveHistory as exportMoveHistoryController, importMoveHistory as importMoveHistoryController } from './ImportExportGames.controller'
 import {
   PLAYER_TURN_WHITE,
   PLAYER_TURN_BLACK,
@@ -181,27 +181,22 @@ function AnalyzeGames() {
     }
   }
 
-  // Execute a move and update game state (shared logic for click and drag-drop)
-  const executeMove = (piece, fromRow, fromCol, toRow, toCol) => {
-    const newBoard = board.map(row => [...row])
-    const capturedPiece = newBoard[toRow][toCol]
+  // Helper function to handle piece capture
+  const handleCapture = (capturedPiece) => {
+    if (!capturedPiece) return
     
-    // Track captured piece
-    if (capturedPiece) {
-      const capturedColor = capturedPiece.split('-')[0]
-      const newCapturedPieces = { ...capturedPieces }
-      if (capturedColor === PLAYER_TURN_WHITE) {
-        newCapturedPieces.white = [...newCapturedPieces.white, capturedPiece]
-      } else {
-        newCapturedPieces.black = [...newCapturedPieces.black, capturedPiece]
-      }
-      setCapturedPieces(newCapturedPieces)
+    const capturedColor = capturedPiece.split('-')[0]
+    const newCapturedPieces = { ...capturedPieces }
+    if (capturedColor === PLAYER_TURN_WHITE) {
+      newCapturedPieces.white = [...newCapturedPieces.white, capturedPiece]
+    } else {
+      newCapturedPieces.black = [...newCapturedPieces.black, capturedPiece]
     }
-    
-    newBoard[toRow][toCol] = piece
-    newBoard[fromRow][fromCol] = ''
-    
-    // Handle castling - move the rook
+    setCapturedPieces(newCapturedPieces)
+  }
+
+  // Helper function to handle castling
+  const handleCastling = (newBoard, piece, fromRow, fromCol, toCol) => {
     const pieceType = piece.split('-')[1]
     if (pieceType === 'R' && Math.abs(toCol - fromCol) === 2) {
       const isKingside = toCol > fromCol
@@ -211,8 +206,11 @@ function AnalyzeGames() {
       newBoard[fromRow][rookToCol] = rook
       newBoard[fromRow][rookFromCol] = ''
     }
-    
-    // Handle pawn promotion - promote to queen when reaching opposite end
+  }
+
+  // Helper function to handle pawn promotion
+  const handlePawnPromotion = (newBoard, piece, toRow, toCol) => {
+    const pieceType = piece.split('-')[1]
     const colorPiece = piece.split('-')[0]
     if (pieceType === 'p') {
       const promotionRow = colorPiece === PLAYER_TURN_WHITE ? 0 : 7
@@ -220,22 +218,50 @@ function AnalyzeGames() {
         newBoard[toRow][toCol] = `${colorPiece}-Q`
       }
     }
+  }
+
+  // Helper function to update move history with checkmate
+  const updateHistoryWithCheckmate = (truncatedHistory, moveNumber, moveText, newBoard, newMovedPieces) => {
+    const newHistory = [...truncatedHistory, 
+      { moveNumber, text: moveText, color: currentTurn, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces), capturedPiecesState: { ...capturedPieces } }, 
+      { moveNumber: moveNumber + 0.5, text: `🏁 CHECKMATE! ${currentTurn === PLAYER_TURN_WHITE ? '⚪ White' : '⚫ Black'} wins!`, color: PLAYER_TURN_CHECKMATE, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces), capturedPiecesState: { ...capturedPieces } }]
+    setMoveHistory(newHistory)
+    setCurrentMoveIndex(newHistory.length - 1)
+  }
+
+  // Helper function to update move history without checkmate
+  const updateHistoryWithMove = (truncatedHistory, moveNumber, moveText, newBoard, newMovedPieces, newTurn) => {
+    const newHistory = [...truncatedHistory, { moveNumber, text: moveText, color: currentTurn, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces), capturedPiecesState: { ...capturedPieces } }]
+    setMoveHistory(newHistory)
+    setCurrentMoveIndex(newHistory.length - 1)
+    setKingInCheck(isKingInCheck(newTurn, newBoard) ? newTurn : null)
+  }
+
+  // Execute a move and update game state (shared logic for click and drag-drop)
+  const executeMove = (piece, fromRow, fromCol, toRow, toCol) => {
+    const newBoard = board.map(row => [...row])
+    const capturedPiece = newBoard[toRow][toCol]
+    
+    handleCapture(capturedPiece)
+    
+    newBoard[toRow][toCol] = piece
+    newBoard[fromRow][fromCol] = ''
+    
+    handleCastling(newBoard, piece, fromRow, fromCol, toCol)
+    handlePawnPromotion(newBoard, piece, toRow, toCol)
     
     setBoard(newBoard)
     
-    // Track that this piece has moved
     const newMovedPieces = new Set(movedPieces)
     newMovedPieces.add(`${fromRow}-${fromCol}`)
     setMovedPieces(newMovedPieces)
+    
     const newTurn = currentTurn === PLAYER_TURN_WHITE ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
     setCurrentTurn(newTurn)
     setSelectedSquare(null)
     setValidMoves([])
     
-    // Truncate history if we're making a move from a previous position
     const truncatedHistory = moveHistory.slice(0, currentMoveIndex + 1)
-    
-    // Add move to history
     const moveNumber = Math.floor(truncatedHistory.length / 2) + 1
     const color = currentTurn === PLAYER_TURN_WHITE ? '⚪' : '⚫'
     const pieceName = getPieceName(piece)
@@ -244,28 +270,14 @@ function AnalyzeGames() {
     const capture = capturedPiece ? ' x ' : ' → '
     const moveText = `${color} ${pieceName} ${from}${capture}${to}`
     
-    // Check if the opponent king is in check or checkmate
     if (isCheckmate(newTurn, newBoard)) {
       setCheckmate(newTurn)
       setKingInCheck(newTurn)
-      // Add checkmate to move history
-      const newHistory = [...truncatedHistory, 
-        { moveNumber, text: moveText, color: currentTurn, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces), capturedPiecesState: { ...capturedPieces } }, 
-        { moveNumber: moveNumber + 0.5, text: `🏁 CHECKMATE! ${currentTurn === PLAYER_TURN_WHITE ? '⚪ White' : '⚫ Black'} wins!`, color: PLAYER_TURN_CHECKMATE, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces), capturedPiecesState: { ...capturedPieces } }]
-      setMoveHistory(newHistory)
-      setCurrentMoveIndex(newHistory.length - 1)
+      updateHistoryWithCheckmate(truncatedHistory, moveNumber, moveText, newBoard, newMovedPieces)
     } else {
-      const newHistory = [...truncatedHistory, { moveNumber, text: moveText, color: currentTurn, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces), capturedPiecesState: { ...capturedPieces } }]
-      setMoveHistory(newHistory)
-      setCurrentMoveIndex(newHistory.length - 1)
-      if (isKingInCheck(newTurn, newBoard)) {
-        setKingInCheck(newTurn)
-      } else {
-        setKingInCheck(null)
-      }
+      updateHistoryWithMove(truncatedHistory, moveNumber, moveText, newBoard, newMovedPieces, newTurn)
     }
     
-    // Recalculate attacked and protected pieces
     recalculateAttacksAndProtection(newBoard)
   }
 
@@ -388,9 +400,41 @@ function AnalyzeGames() {
     setDraggedFrom(null)
   }
 
+  // Helper function to determine turn after a move
+  const determineTurnAfterMove = (index, historyEntry) => {
+    if (index === 0) return PLAYER_TURN_WHITE
+    
+    if (historyEntry.color === PLAYER_TURN_WHITE) {
+      return PLAYER_TURN_BLACK
+    } else if (historyEntry.color === PLAYER_TURN_BLACK) {
+      return PLAYER_TURN_WHITE
+    } else if (historyEntry.color === PLAYER_TURN_CHECKMATE) {
+      return historyEntry.text.includes('White wins') ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
+    }
+    return PLAYER_TURN_WHITE
+  }
+
+  // Helper function to update check/checkmate state
+  const updateCheckState = (historyEntry, restoredBoard) => {
+    if (historyEntry.color === PLAYER_TURN_CHECKMATE) {
+      const checkmatedColor = historyEntry.text.includes('White wins') ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
+      setCheckmate(checkmatedColor)
+      setKingInCheck(checkmatedColor)
+      return
+    }
+    
+    setCheckmate(null)
+    if (isKingInCheck(PLAYER_TURN_WHITE, restoredBoard)) {
+      setKingInCheck(PLAYER_TURN_WHITE)
+    } else if (isKingInCheck(PLAYER_TURN_BLACK, restoredBoard)) {
+      setKingInCheck(PLAYER_TURN_BLACK)
+    } else {
+      setKingInCheck(null)
+    }
+  }
+
   const handleMoveClick = (index) => {
     const historyEntry = moveHistory[index]
-    // Prevent clicking on sealed moves
     if (historyEntry.sealed) return
     
     setBoard(historyEntry.boardState.map(row => [...row]))
@@ -399,45 +443,15 @@ function AnalyzeGames() {
     setSelectedSquare(null)
     setValidMoves([])
     
-    // Restore captured pieces state
     if (historyEntry.capturedPiecesState) {
       setCapturedPieces(historyEntry.capturedPiecesState)
     }
     
-    // Determine whose turn it is: if the move was made by white, it's black's turn next
-    // For index 0 (initial position), it's white's turn
-    let turn = PLAYER_TURN_WHITE
-    if (index > 0) {
-      // After a move is made, it's the other player's turn
-      if (historyEntry.color === PLAYER_TURN_WHITE) {
-        turn = PLAYER_TURN_BLACK
-      } else if (historyEntry.color === PLAYER_TURN_BLACK) {
-        turn = PLAYER_TURN_WHITE
-      } else if (historyEntry.color === PLAYER_TURN_CHECKMATE) {
-        // On checkmate move, keep the current turn (game is over anyway)
-        turn = historyEntry.text.includes('White wins') ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
-      }
-    }
+    const turn = determineTurnAfterMove(index, historyEntry)
     setCurrentTurn(turn)
     
-    // Check game state
     const restoredBoard = historyEntry.boardState
-    if (historyEntry.color === PLAYER_TURN_CHECKMATE) {
-      const checkmatedColor = historyEntry.text.includes('White wins') ? PLAYER_TURN_BLACK : PLAYER_TURN_WHITE
-      setCheckmate(checkmatedColor)
-      setKingInCheck(checkmatedColor)
-    } else {
-      setCheckmate(null)
-      if (isKingInCheck(PLAYER_TURN_WHITE, restoredBoard)) {
-        setKingInCheck(PLAYER_TURN_WHITE)
-      } else if (isKingInCheck(PLAYER_TURN_BLACK, restoredBoard)) {
-        setKingInCheck(PLAYER_TURN_BLACK)
-      } else {
-        setKingInCheck(null)
-      }
-    }
-    
-    // Recalculate attacked and protected pieces
+    updateCheckState(historyEntry, restoredBoard)
     recalculateAttacksAndProtection(restoredBoard)
   }
 
@@ -551,66 +565,87 @@ function AnalyzeGames() {
     ? `🏁 CHECKMATE! ${winner} wins!`
     : turnMessage
 
+  // Helper function to get flash class for a square
+  const getFlashClass = (rowIndex, colIndex) => {
+    const flashingPieceInfo = flashingPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
+    if (flashingPieceInfo) {
+      return `defender-flash-${flashingPieceInfo.color}`
+    }
+    
+    const flashingAttackedInfo = flashingAttackedPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
+    if (flashingAttackedInfo) {
+      return `attacked-flash-${flashingAttackedInfo.color}`
+    }
+    
+    return ''
+  }
+
+  // Helper function to get valid move class
+  const getValidMoveClass = (validMove) => {
+    if (!validMove || validMove.isAttack) return ''
+    return validMove.wouldBeAttacked ? 'valid-move-attacked' : 'valid-move'
+  }
+
+  // Helper function to get valid attack class
+  const getValidAttackClass = (validMove) => {
+    if (!validMove?.isAttack) return ''
+    
+    let attackClass = showAttackedFlash ? '' : 'valid-attack '
+    attackClass += validMove.wouldBeAttacked ? 'valid-attack-unsafe' : 'valid-attack-safe'
+    return attackClass
+  }
+
+  // Helper function to get check status class
+  const getCheckStatusClass = (piece) => {
+    const isKingInCheckmateSquare = checkmate && piece === `${checkmate}-R`
+    if (isKingInCheckmateSquare) return 'in-checkmate'
+    
+    const isKingInCheckSquare = kingInCheck && piece === `${kingInCheck}-R`
+    if (isKingInCheckSquare) return 'in-check'
+    
+    return ''
+  }
+
+  // Helper function to get attack class
+  const getAttackClass = (rowIndex, colIndex, piece) => {
+    const attackInfo = attackedPieces.find(ap => ap.row === rowIndex && ap.col === colIndex)
+    if (!attackInfo) return ''
+    
+    const isKingInCheckSquare = kingInCheck && piece === `${kingInCheck}-R`
+    const isKingInCheckmateSquare = checkmate && piece === `${checkmate}-R`
+    const showUnderAttack = !isKingInCheckSquare && !isKingInCheckmateSquare
+    
+    return showUnderAttack ? `under-attack under-attack-${attackInfo.attackedBy}` : ''
+  }
+
+  // Helper function to get protection class
+  const getProtectionClass = (rowIndex, colIndex, piece) => {
+    const protectedInfo = protectedPieces.find(pp => pp.row === rowIndex && pp.col === colIndex)
+    if (!protectedInfo) return ''
+    
+    const isKingInCheckmateSquare = checkmate && piece === `${checkmate}-R`
+    if (isKingInCheckmateSquare) return ''
+    
+    const defenderCount = Math.min(protectedInfo.defenders, 4)
+    return `protected protected-${protectedInfo.color}-${defenderCount}`
+  }
+
   // Helper function to calculate square classes
   const getSquareClasses = (rowIndex, colIndex, piece) => {
     const isLight = (rowIndex + colIndex) % 2 === 0
     const isSelected = selectedSquare && selectedSquare.row === rowIndex && selectedSquare.col === colIndex
     const validMove = validMoves.find(m => m.row === rowIndex && m.col === colIndex)
-    const isValidMove = validMove && !validMove.isAttack
-    const isValidAttack = validMove?.isAttack
-    const wouldBeAttacked = validMove?.wouldBeAttacked
     
-    const attackInfo = attackedPieces.find(ap => ap.row === rowIndex && ap.col === colIndex)
-    const isUnderAttack = !!attackInfo
-    const attackedBy = attackInfo ? attackInfo.attackedBy : ''
-    
-    const protectedInfo = protectedPieces.find(pp => pp.row === rowIndex && pp.col === colIndex)
-    const isProtected = !!protectedInfo
-    const defenderCount = protectedInfo ? protectedInfo.defenders : 0
-    const protectionColor = protectedInfo ? protectedInfo.color : ''
-    
-    const isKingInCheckSquare = kingInCheck && piece === `${kingInCheck}-R`
-    const isKingInCheckmateSquare = checkmate && piece === `${checkmate}-R`
-    const showUnderAttack = isUnderAttack && !isKingInCheckSquare && !isKingInCheckmateSquare
-    const showProtection = isProtected && !isKingInCheckmateSquare
-    
-    const flashingPieceInfo = flashingPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
-    const flashingAttackedInfo = flashingAttackedPieces.find(fp => fp.row === rowIndex && fp.col === colIndex)
-    
-    let flashClass = ''
-    if (flashingPieceInfo) {
-      flashClass = `defender-flash-${flashingPieceInfo.color}`
-    } else if (flashingAttackedInfo) {
-      flashClass = `attacked-flash-${flashingAttackedInfo.color}`
-    }
-    
-    let validMoveClass = ''
-    if (isValidMove) {
-      validMoveClass = wouldBeAttacked ? 'valid-move-attacked' : 'valid-move'
-    }
-    
-    let validAttackClass = ''
-    if (isValidAttack) {
-      if(!showAttackedFlash){
-        validAttackClass = 'valid-attack '
-      }
-      validAttackClass += wouldBeAttacked ? 'valid-attack-unsafe' : 'valid-attack-safe'
-    }
-    
-    let checkStatusClass = ''
-    if (isKingInCheckmateSquare) {
-      checkStatusClass = 'in-checkmate'
-    } else if (isKingInCheckSquare) {
-      checkStatusClass = 'in-check'
-    }
+    const validMoveClass = getValidMoveClass(validMove)
+    const validAttackClass = getValidAttackClass(validMove)
+    const checkStatusClass = getCheckStatusClass(piece)
+    const attackClass = getAttackClass(rowIndex, colIndex, piece)
+    const protectionClass = getProtectionClass(rowIndex, colIndex, piece)
+    const flashClass = getFlashClass(rowIndex, colIndex)
     
     return `chess-square ${isLight ? 'light' : 'dark'} ${
       isSelected ? 'selected' : ''
-    } ${validMoveClass} ${validAttackClass} ${
-      showUnderAttack ? `under-attack under-attack-${attackedBy}` : ''
-    } ${
-      showProtection ? `protected protected-${protectionColor}-${Math.min(defenderCount, 4)}` : ''
-    } ${checkStatusClass} ${flashClass}`
+    } ${validMoveClass} ${validAttackClass} ${attackClass} ${protectionClass} ${checkStatusClass} ${flashClass}`
   }
 
   // Helper function to render a chess square
@@ -763,6 +798,52 @@ function AnalyzeGames() {
               <span className="black-moves-col">⚫ Black</span>
             </div>
             {(() => {
+              // Helper to render checkmate row
+              const renderCheckmateRow = (moveNum, checkmate) => (
+                <div key={`checkmate-${moveNum}`} className="move-row checkmate-row">
+                  <span className="move-number">{moveNum}.</span>
+                  <div 
+                    className={`move-cell checkmate-cell ${checkmate.index === currentMoveIndex ? 'active' : ''} ${checkmate.move.sealed ? 'sealed' : ''}`}
+                    onClick={() => handleMoveClick(checkmate.index)}
+                  >
+                    {checkmate.move.text}
+                  </div>
+                </div>
+              )
+
+              // Helper to render regular move row
+              const renderMoveRow = (moveNum, white, black) => {
+                let whiteStatusClass = 'empty'
+                if (white) {
+                  whiteStatusClass = white.index === currentMoveIndex ? 'active' : ''
+                }
+                
+                let blackStatusClass = 'empty'
+                if (black) {
+                  blackStatusClass = black.index === currentMoveIndex ? 'active' : ''
+                }
+                
+                return (
+                  <div key={`move-${moveNum}`} className="move-row">
+                    <span className="move-number">{moveNum}.</span>
+                    <div 
+                      className={`move-cell white-move ${whiteStatusClass} ${white?.move.sealed ? 'sealed' : ''}`}
+                      onClick={() => white && handleMoveClick(white.index)}
+                      title={white?.move.sealed ? 'Imported move (locked)' : ''}
+                    >
+                      {white ? white.move.text.replace('⚪', '').trim() : ''}
+                    </div>
+                    <div 
+                      className={`move-cell black-move ${blackStatusClass} ${black?.move.sealed ? 'sealed' : ''}`}
+                      onClick={() => black && handleMoveClick(black.index)}
+                      title={black?.move.sealed ? 'Imported move (locked)' : ''}
+                    >
+                      {black ? black.move.text.replace('⚫', '').trim() : ''}
+                    </div>
+                  </div>
+                )
+              }
+
               // Group moves by move number
               const groupedMoves = {}
               moveHistory.forEach((move, index) => {
@@ -775,7 +856,6 @@ function AnalyzeGames() {
                 } else if (move.color === PLAYER_TURN_BLACK) {
                   groupedMoves[moveNum].black = { move, index }
                 } else if (move.color === PLAYER_TURN_CHECKMATE) {
-                  // Display checkmate in both columns
                   groupedMoves[moveNum].checkmate = { move, index }
                 }
               })
@@ -786,50 +866,7 @@ function AnalyzeGames() {
                 .sort((a, b) => b - a)
                 .map(moveNum => {
                   const { white, black, checkmate } = groupedMoves[moveNum]
-                  
-                  if (checkmate) {
-                    return (
-                      <div key={`checkmate-${moveNum}`} className="move-row checkmate-row">
-                        <span className="move-number">{moveNum}.</span>
-                        <div 
-                          className={`move-cell checkmate-cell ${checkmate.index === currentMoveIndex ? 'active' : ''} ${checkmate.move.sealed ? 'sealed' : ''}`}
-                          onClick={() => handleMoveClick(checkmate.index)}
-                        >
-                          {checkmate.move.text}
-                        </div>
-                      </div>
-                    )
-                  }
-                  
-                  let whiteStatusClass = 'empty'
-                  if (white) {
-                    whiteStatusClass = white.index === currentMoveIndex ? 'active' : ''
-                  }
-                  
-                  let blackStatusClass = 'empty'
-                  if (black) {
-                    blackStatusClass = black.index === currentMoveIndex ? 'active' : ''
-                  }
-                  
-                  return (
-                    <div key={`move-${moveNum}`} className="move-row">
-                      <span className="move-number">{moveNum}.</span>
-                      <div 
-                        className={`move-cell white-move ${whiteStatusClass} ${white?.move.sealed ? 'sealed' : ''}`}
-                        onClick={() => white && handleMoveClick(white.index)}
-                        title={white?.move.sealed ? 'Imported move (locked)' : ''}
-                      >
-                        {white ? white.move.text.replace('⚪', '').trim() : ''}
-                      </div>
-                      <div 
-                        className={`move-cell black-move ${blackStatusClass} ${black?.move.sealed ? 'sealed' : ''}`}
-                        onClick={() => black && handleMoveClick(black.index)}
-                        title={black?.move.sealed ? 'Imported move (locked)' : ''}
-                      >
-                        {black ? black.move.text.replace('⚫', '').trim() : ''}
-                      </div>
-                    </div>
-                  )
+                  return checkmate ? renderCheckmateRow(moveNum, checkmate) : renderMoveRow(moveNum, white, black)
                 })
             })()}
           </div>
