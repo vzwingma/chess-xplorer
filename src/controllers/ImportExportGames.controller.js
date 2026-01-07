@@ -9,9 +9,9 @@ const PLAYER_TURN_BLACK = 'black'
 const PLAYER_TURN_CHECKMATE = 'checkmate'
 
 /**
- * Exports the current chess game's move history and board state to a text file.
+ * Exports the current chess game's move history and board state to a Markdown file.
  * 
- * Creates a downloadable text file containing:
+ * Creates a downloadable Markdown file containing:
  * - Play number identifier
  * - Date and timestamp
  * - Complete move history with move numbers
@@ -27,25 +27,24 @@ export const exportMoveHistory = (moveHistory, board, playNumber, capturedPieces
   if (moveHistory.length === 0) return
   
   const timestamp = playNumber || new Date().toISOString().replaceAll(/[:.]/g, '-').slice(0, -5)
-  let content = 'Chess Game Move History\n'
-  content += '======================\n'
-  content += `Play Number: ${playNumber}\n`
-  content += `Date: ${new Date().toLocaleString()}\n\n`
+  let content = '# Chess Game Move History\n\n'
+  content += '## Game Information\n\n'
+  content += `- **Play Number:** ${playNumber}\n`
+  content += `- **Date:** ${new Date().toLocaleString()}\n\n`
   
+  content += '## Move History\n\n'
   moveHistory.forEach(move => {
     content += `${move.moveNumber}. ${move.text}\n`
   })
-    // Add captured pieces section
+  
+  // Add captured pieces section
   if (capturedPieces) {
-    content += '\n\nCaptured Pieces\n'
-    content += '===============\n'
-    content += `White pieces captured: ${capturedPieces.white.join(', ')}\n`
-    content += `Black pieces captured: ${capturedPieces.black.join(', ')}\n`
+    content += '\n## Captured Pieces\n\n'
+    content += `- **White pieces captured:** ${capturedPieces.white.join(', ') || 'None'}\n`
+    content += `- **Black pieces captured:** ${capturedPieces.black.join(', ') || 'None'}\n`
   }
-    content += '\n\nFinal Board State\n'
-  content += '=================\n\n'
-  content += '    a   b   c   d   e   f   g   h\n'
-  content += '  +---+---+---+---+---+---+---+---+\n'
+  
+  content += '\n## Final Board State\n\n'
   
   // Map piece codes to unicode symbols
   const pieceSymbols = {
@@ -53,24 +52,28 @@ export const exportMoveHistory = (moveHistory, board, playNumber, capturedPieces
     'black-p': '♟', 'black-T': '♜', 'black-C': '♞', 'black-F': '♝', 'black-Q': '♛', 'black-R': '♚'
   }
   
+  // Create markdown table header
+  content += '|   | a | b | c | d | e | f | g | h |\n'
+  content += '|---|---|---|---|---|---|---|---|---|\n'
+  
+  // Add board rows
   board.forEach((row, rowIndex) => {
     const rank = 8 - rowIndex
-    content += `${rank} |`
+    content += `| **${rank}** |`
     row.forEach(piece => {
       const symbol = piece ? pieceSymbols[piece] || '?' : ' '
       content += ` ${symbol} |`
     })
-    content += ` ${rank}\n`
-    content += '  +---+---+---+---+---+---+---+---+\n'
+    content += '\n'
   })
   
-  content += '    a   b   c   d   e   f   g   h\n'
+  content += '\n'
   
-  const blob = new Blob([content], { type: 'text/plain' })
+  const blob = new Blob([content], { type: 'text/markdown' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `chess-game-${timestamp}.txt`
+  link.download = `chess-game-${timestamp}.md`
   document.body.appendChild(link)
   link.click()
   link.remove()
@@ -214,7 +217,7 @@ const parseBoardState = (boardSection) => {
 export const importMoveHistory = (onImportSuccess) => {
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = '.txt'
+  input.accept = '.md'
   
   input.onchange = async (e) => {
     const file = e.target.files[0]
