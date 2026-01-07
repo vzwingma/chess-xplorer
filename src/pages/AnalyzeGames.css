@@ -314,7 +314,7 @@
   font-weight: 600;
   color: #fff;
   padding: 0.5rem 1rem;
-  background: var(--bg-panel);
+  background: var(--bg-panel-dark);
   border-radius: 8px;
   border: 1px solid var(--color-primary);
   white-space: nowrap;
