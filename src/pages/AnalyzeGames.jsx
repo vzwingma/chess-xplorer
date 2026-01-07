@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './AnalyzeGames.css'
-import { exportMoveHistory as exportMoveHistoryController, importMoveHistory as importMoveHistoryController } from './ImportExportGames.controller'
+import { exportMoveHistory as exportMoveHistoryController, importMoveHistory as importMoveHistoryController } from '../controllers/ImportExportGames.controller'
 import {
   PLAYER_TURN_WHITE,
   PLAYER_TURN_BLACK,
@@ -20,7 +20,7 @@ import {
   calculateAttackedPieces as calculateAttackedPiecesHelper,
   calculateDefenders as calculateDefendersHelper,
   calculateProtectedPieces as calculateProtectedPiecesHelper
-} from './AnalyseGames.helper'
+} from '../controllers/AnalyseGames.helper'
 import plateauImage from '../resources/plateau.png'
 import blackT from '../resources/black-T.png'
 import blackC from '../resources/black-C.png'
