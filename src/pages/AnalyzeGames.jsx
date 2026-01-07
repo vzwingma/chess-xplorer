@@ -596,8 +596,16 @@ function AnalyzeGames() {
   }
 
   // Helper function to get valid attack class
-  const getValidAttackClass = (validMove) => {
+  const getValidAttackClass = (validMove, rowIndex, colIndex, piece) => {
     if (!validMove?.isAttack) return ''
+    
+    // Don't show attack classes on squares with own pieces
+    if (piece && selectedSquare) {
+      const selectedPiece = board[selectedSquare.row][selectedSquare.col]
+      if (selectedPiece && piece.split('-')[0] === selectedPiece.split('-')[0]) {
+        return ''
+      }
+    }
     
     let attackClass = showAttackedFlash ? '' : 'valid-attack '
     attackClass += validMove.wouldBeAttacked ? 'valid-attack-unsafe' : 'valid-attack-safe'
@@ -646,7 +654,7 @@ function AnalyzeGames() {
     const validMove = validMoves.find(m => m.row === rowIndex && m.col === colIndex)
     
     const validMoveClass = getValidMoveClass(validMove)
-    const validAttackClass = getValidAttackClass(validMove)
+    const validAttackClass = getValidAttackClass(validMove, rowIndex, colIndex, piece)
     const checkStatusClass = getCheckStatusClass(piece)
     const attackClass = getAttackClass(rowIndex, colIndex, piece)
     const protectionClass = getProtectionClass(rowIndex, colIndex, piece)
