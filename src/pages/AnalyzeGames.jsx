@@ -271,8 +271,19 @@ function AnalyzeGames() {
     const pieceName = getPieceName(piece)
     const from = toChessNotation(fromRow, fromCol)
     const to = toChessNotation(toRow, toCol)
-    const capture = capturedPiece ? ' x ' : ' → '
-    const moveText = `${color} ${pieceName} ${from}${capture}${to}`
+    
+    // Check if this is castling
+    const pieceType = piece.split('-')[1]
+    const isCastling = pieceType === 'R' && Math.abs(toCol - fromCol) === 2
+    let moveText
+    
+    if (isCastling) {
+      const isKingside = toCol > fromCol
+      moveText = `${color} ${isKingside ? 'O-O' : 'O-O-O'}`
+    } else {
+      const capture = capturedPiece ? ' x ' : ' → '
+      moveText = `${color} ${pieceName} ${from}${capture}${to}`
+    }
     
     if (isCheckmate(newTurn, newBoard)) {
       setCheckmate(newTurn)
