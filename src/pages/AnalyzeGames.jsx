@@ -735,16 +735,14 @@ function AnalyzeGames() {
               <button 
                 className="tool-btn import-btn"
                 onClick={importMoveHistory}
-                title="Import game from text file"
-              >
+                title="Import game from text file">
                 📄 Import
               </button>
               <button 
                 className="tool-btn export-btn"
                 onClick={exportMoveHistory}
                 disabled={moveHistory.length === 0}
-                title="Export move history to text file"
-              >
+                title="Export move history to text file">
                 💾 Export
               </button>
             </div>
