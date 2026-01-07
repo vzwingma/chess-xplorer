@@ -194,10 +194,11 @@ const parseBoardState = (boardSection) => {
  * - Extracts player turns (white/black) based on chess piece symbols (⚫)
  * - Marks all moves as sealed except the last one
  * - Parses the board state from Unicode chess symbols to internal piece notation
+ * - Extracts the Play Number from the file header
  * - Calls the provided callback with parsed data for game state updates
  * 
  * @function
- * @param {Function} onImportSuccess - Callback function called with (parsedMoves, newBoard) on successful import
+ * @param {Function} onImportSuccess - Callback function called with (parsedMoves, newBoard, capturedPieces, playNumber) on successful import
  * @throws {Error} Displays an alert if the file format is invalid or parsing fails
  * @fires input#onchange - Triggers when a file is selected
  * 
@@ -226,6 +227,13 @@ export const importMoveHistory = (onImportSuccess) => {
         const historySection = content.split('Final Board State')[0]
         const parsedMoves = parseMoveHistory(historySection)
         
+        // Extract Play Number from the file
+        let playNumber = null
+        const playNumberMatch = content.match(/Play Number:\s*(.+)/)
+        if (playNumberMatch) {
+          playNumber = playNumberMatch[1].trim()
+        }
+        
         const boardSection = content.split('Final Board State')[1]
         if (!boardSection) {
           alert('Could not find board state in file')
@@ -241,8 +249,8 @@ export const importMoveHistory = (onImportSuccess) => {
           parsedMoves.at(-1).capturedPiecesState = capturedPieces
         }
         
-        // Call the success callback with parsed data
-        onImportSuccess(parsedMoves, newBoard, capturedPieces)
+        // Call the success callback with parsed data including the playNumber
+        onImportSuccess(parsedMoves, newBoard, capturedPieces, playNumber)
       } catch (error) {
         console.error('Error parsing file:', error)
         alert('Error loading file. Please make sure it is a valid chess game export.')

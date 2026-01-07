@@ -481,7 +481,7 @@ function AnalyzeGames() {
 
 
   // Helper function to update game state after import
-  const updateGameStateAfterImport = (parsedMoves, newBoard, capturedPieces) => {
+  const updateGameStateAfterImport = (parsedMoves, newBoard, capturedPieces, playNumber) => {
     setBoard(newBoard)
     setMoveHistory(parsedMoves)
     setSelectedSquare(null)
@@ -492,6 +492,11 @@ function AnalyzeGames() {
     setKingInCheck(null)
     setCurrentMoveIndex(parsedMoves.length - 1)
     setCapturedPieces(capturedPieces || { white: [], black: [] })
+    
+    // Update play number if provided in the imported file
+    if (playNumber) {
+      setPlayNumber(playNumber)
+    }
     
     const lastMove = parsedMoves[parsedMoves.length - 1]
     if (lastMove?.color === PLAYER_TURN_CHECKMATE) {
@@ -514,8 +519,8 @@ function AnalyzeGames() {
 
   // Import game from a text file
   const importMoveHistory = () => {
-    importMoveHistoryController((parsedMoves, newBoard, capturedPieces) => {
-      updateGameStateAfterImport(parsedMoves, newBoard, capturedPieces)
+    importMoveHistoryController((parsedMoves, newBoard, capturedPieces, playNumber) => {
+      updateGameStateAfterImport(parsedMoves, newBoard, capturedPieces, playNumber)
     })
   }
 
