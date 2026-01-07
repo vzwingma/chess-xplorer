@@ -13,7 +13,7 @@
   -moz-osx-font-smoothing: grayscale;
 
   /* Shared CSS Variables */
-  --gradient-primary: linear-gradient(135deg, #f4a83e 0%, #d4922e 100%);
+  --gradient-primary: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
   --gradient-cta: linear-gradient(135deg, #e09d33 0%, #b87a1f 100%);
   --color-primary: #f4a83e;
   --color-secondary: #d4922e;

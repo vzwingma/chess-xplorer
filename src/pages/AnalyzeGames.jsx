@@ -682,7 +682,7 @@ function AnalyzeGames() {
   return (
     <div className="analyze-games">
       <header className="analyze-header">
-        <h1>📊 Analyze Game #{playNumber}</h1>
+        <h1>♞ Analyze Game </h1><h3>#{playNumber}</h3>
         <div className="turn-indicator">
           {checkmateMessage}
         </div>
@@ -737,7 +737,7 @@ function AnalyzeGames() {
                 onClick={importMoveHistory}
                 title="Import game from text file"
               >
-                📂 Import
+                📄 Import
               </button>
               <button 
                 className="tool-btn export-btn"
@@ -768,7 +768,7 @@ function AnalyzeGames() {
               className={`toggle-btn ${showAttackedFlash ? 'active' : ''}`}
               onClick={() => setShowAttackedFlash(!showAttackedFlash)}
             >
-              <span className="toggle-content"><span className="toggle-icon">🎯</span><span className="toggle-label">Selected piece</span></span> <span className={`status-light ${showAttackedFlash ? 'on' : 'off'}`}>●</span>
+              <span className="toggle-content"><span className="toggle-icon">💥</span><span className="toggle-label">Selected piece</span></span> <span className={`status-light ${showAttackedFlash ? 'on' : 'off'}`}>●</span>
             </button>
           </div>
           <div className="attack-toggles">
@@ -789,7 +789,7 @@ function AnalyzeGames() {
               className={`toggle-btn ${showDefenderFlash ? 'active' : ''}`}
               onClick={() => setShowDefenderFlash(!showDefenderFlash)}
             >
-              <span className="toggle-content"><span className="toggle-icon">✨</span><span className="toggle-label">Selected piece</span></span> <span className={`status-light ${showDefenderFlash ? 'on' : 'off'}`}>●</span>
+              <span className="toggle-content"><span className="toggle-icon">🛡️</span><span className="toggle-label">Selected piece</span></span> <span className={`status-light ${showDefenderFlash ? 'on' : 'off'}`}>●</span>
             </button>
           </div>
         </div>
