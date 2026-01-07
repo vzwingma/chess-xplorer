@@ -304,12 +304,12 @@ export const isCheckmate = (color, boardToCheck, movedPieces, isKingInCheckFn, h
 }
 
 // Calculate all valid moves for a piece
-export const getValidMovesForPiece = (piece, fromRow, fromCol, board, isLegalMoveFn, isSquareUnderAttackFn) => {
+export const getValidMovesForPiece = (piece, fromRow, fromCol, board, movedPieces, isLegalMoveFn, isSquareUnderAttackFn) => {
   const moves = []
   const color = piece.split('-')[0]
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
-      if (isLegalMoveFn(piece, fromRow, fromCol, row, col, board, { allowSameColor: false })) {
+      if (isLegalMoveFn(piece, fromRow, fromCol, row, col, board, { movedPieces, allowSameColor: false })) {
         const isAttack = board[row][col] !== ''
         
         // Create a test board with the piece moved to check if it would be under attack
@@ -326,7 +326,7 @@ export const getValidMovesForPiece = (piece, fromRow, fromCol, board, isLegalMov
 }
 
 // Calculate all attacked pieces by the current player
-export const calculateAttackedPieces = (boardState, attackingColor, isLegalMoveFn) => {
+export const calculateAttackedPieces = (boardState, attackingColor, movedPieces, isLegalMoveFn) => {
   const attacked = []
   forEachBoardSquare((fromRow, fromCol) => {
     const piece = boardState[fromRow][fromCol]
@@ -334,7 +334,7 @@ export const calculateAttackedPieces = (boardState, attackingColor, isLegalMoveF
       forEachBoardSquare((toRow, toCol) => {
         const targetPiece = boardState[toRow][toCol]
         if (targetPiece && !targetPiece.startsWith(attackingColor)) {
-          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardState, { allowSameColor: false })) {
+          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardState, { movedPieces, allowSameColor: false })) {
             attacked.push({ row: toRow, col: toCol, attackedBy: attackingColor })
           }
         }
@@ -345,7 +345,7 @@ export const calculateAttackedPieces = (boardState, attackingColor, isLegalMoveF
 }
 
 // Calculate which pieces defend a specific piece
-export const calculateDefenders = (targetRow, targetCol, boardState, isLegalMoveFn) => {
+export const calculateDefenders = (targetRow, targetCol, boardState, movedPieces, isLegalMoveFn) => {
   const targetPiece = boardState[targetRow][targetCol]
   if (!targetPiece) return []
   
@@ -355,7 +355,7 @@ export const calculateDefenders = (targetRow, targetCol, boardState, isLegalMove
   forEachBoardSquare((fromRow, fromCol) => {
     const piece = boardState[fromRow][fromCol]
     if (piece?.startsWith(pieceColor) && !(fromRow === targetRow && fromCol === targetCol)) {
-      if (isLegalMoveFn(piece, fromRow, fromCol, targetRow, targetCol, boardState, { allowSameColor: true })) {
+      if (isLegalMoveFn(piece, fromRow, fromCol, targetRow, targetCol, boardState, { movedPieces, allowSameColor: true })) {
         defenders.push({ row: fromRow, col: fromCol, color: pieceColor })
       }
     }
@@ -365,7 +365,7 @@ export const calculateDefenders = (targetRow, targetCol, boardState, isLegalMove
 }
 
 // Calculate protected pieces (defended by same color) with defender count
-export const calculateProtectedPieces = (boardState, protectingColor, isLegalMoveFn) => {
+export const calculateProtectedPieces = (boardState, protectingColor, movedPieces, isLegalMoveFn) => {
   const protectionMap = new Map()
   
   forEachBoardSquare((fromRow, fromCol) => {
@@ -376,7 +376,7 @@ export const calculateProtectedPieces = (boardState, protectingColor, isLegalMov
         // Check if target is same color and can be defended
         if (targetPiece?.startsWith(protectingColor) && 
             !(fromRow === toRow && fromCol === toCol)) {
-          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardState, { allowSameColor: true })) {
+          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardState, { movedPieces, allowSameColor: true })) {
             const key = `${toRow}-${toCol}`
             const current = protectionMap.get(key) || { row: toRow, col: toCol, defenders: 0, color: protectingColor }
             current.defenders += 1

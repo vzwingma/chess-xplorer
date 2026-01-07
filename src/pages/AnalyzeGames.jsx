@@ -92,7 +92,11 @@ function AnalyzeGames() {
   }
 
   const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck = board, allowSameColor = false) => {
-    return isLegalMoveHelper(piece, fromRow, fromCol, toRow, toCol, boardToCheck, movedPieces, isSquareUnderAttack, allowSameColor)
+    return isLegalMoveHelper(piece, fromRow, fromCol, toRow, toCol, boardToCheck, { 
+      movedPieces, 
+      isSquareUnderAttackFn: isSquareUnderAttack, 
+      allowSameColor 
+    })
   }
 
   const isKingInCheck = (color, boardToCheck = board) => {
@@ -108,19 +112,19 @@ function AnalyzeGames() {
   }
 
   const getValidMovesForPiece = (piece, fromRow, fromCol) => {
-    return getValidMovesForPieceHelper(piece, fromRow, fromCol, board, isLegalMove, isSquareUnderAttack)
+    return getValidMovesForPieceHelper(piece, fromRow, fromCol, board, movedPieces, isLegalMove, isSquareUnderAttack)
   }
 
   const calculateAttackedPieces = (boardState, attackingColor) => {
-    return calculateAttackedPiecesHelper(boardState, attackingColor, isLegalMove)
+    return calculateAttackedPiecesHelper(boardState, attackingColor, movedPieces, isLegalMove)
   }
 
   const calculateDefenders = (targetRow, targetCol, boardState = board) => {
-    return calculateDefendersHelper(targetRow, targetCol, boardState, isLegalMove)
+    return calculateDefendersHelper(targetRow, targetCol, boardState, movedPieces, isLegalMove)
   }
 
   const calculateProtectedPieces = (boardState, protectingColor) => {
-    return calculateProtectedPiecesHelper(boardState, protectingColor, isLegalMove)
+    return calculateProtectedPiecesHelper(boardState, protectingColor, movedPieces, isLegalMove)
   }
 
   // Recalculate attacked and protected pieces based on toggle states

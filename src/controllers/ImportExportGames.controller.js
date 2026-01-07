@@ -40,8 +40,14 @@ export const exportMoveHistory = (moveHistory, board, playNumber, capturedPieces
   // Add captured pieces section
   if (capturedPieces) {
     content += '\n## Captured Pieces\n\n'
-    content += `- **White pieces captured:** ${capturedPieces.white.join(', ') || 'None'}\n`
-    content += `- **Black pieces captured:** ${capturedPieces.black.join(', ') || 'None'}\n`
+    const pieceSymbols = {
+      'white-p': '♙', 'white-T': '♖', 'white-C': '♘', 'white-F': '♗', 'white-Q': '♕', 'white-R': '♔',
+      'black-p': '♟', 'black-T': '♜', 'black-C': '♞', 'black-F': '♝', 'black-Q': '♛', 'black-R': '♚'
+    }
+    const whiteCaptured = capturedPieces.white.map(p => pieceSymbols[p] || p).join(', ') || 'None'
+    const blackCaptured = capturedPieces.black.map(p => pieceSymbols[p] || p).join(', ') || 'None'
+    content += `- **White pieces captured:** ${whiteCaptured}\n`
+    content += `- **Black pieces captured:** ${blackCaptured}\n`
   }
   
   content += '\n## Final Board State\n\n'
@@ -130,17 +136,33 @@ const parseCapturedPieces = (content) => {
     return capturedPieces
   }
   
+  // Map Unicode symbols to internal piece codes
+  const symbolToPiece = {
+    '♙': 'white-p', '♖': 'white-T', '♘': 'white-C', '♗': 'white-F', '♕': 'white-Q', '♔': 'white-R',
+    '♟': 'black-p', '♜': 'black-T', '♞': 'black-C', '♝': 'black-F', '♛': 'black-Q', '♚': 'black-R'
+  }
+  
   const lines = capturedSection.split('\n')
   lines.forEach(line => {
     if (line.includes('White pieces captured:')) {
-      const pieces = line.split(':')[1]?.trim()
-      if (pieces && pieces !== '') {
-        capturedPieces.white = pieces.split(', ').filter(Boolean)
+      // Extract after the colon and before any closing **
+      const pieces = line.split(':')[1]?.replace(/\*\*/g, '').trim()
+      if (pieces && pieces !== '' && pieces !== 'None') {
+        capturedPieces.white = pieces.split(', ').map(p => {
+          p = p.trim()
+          // Convert Unicode symbol to internal piece code
+          return symbolToPiece[p] || p
+        }).filter(Boolean)
       }
     } else if (line.includes('Black pieces captured:')) {
-      const pieces = line.split(':')[1]?.trim()
-      if (pieces && pieces !== '') {
-        capturedPieces.black = pieces.split(', ').filter(Boolean)
+      // Extract after the colon and before any closing **
+      const pieces = line.split(':')[1]?.replace(/\*\*/g, '').trim()
+      if (pieces && pieces !== '' && pieces !== 'None') {
+        capturedPieces.black = pieces.split(', ').map(p => {
+          p = p.trim()
+          // Convert Unicode symbol to internal piece code
+          return symbolToPiece[p] || p
+        }).filter(Boolean)
       }
     }
   })
@@ -164,11 +186,15 @@ const parseBoardState = (boardSection) => {
     '♟': 'black-p', '♜': 'black-T', '♞': 'black-C', '♝': 'black-F', '♛': 'black-Q', '♚': 'black-R'
   }
   
-  const boardLines = boardSection.split('\n').filter(line => new RegExp(/^\d\s*\|/).exec(line))
+  // Handle both old format (8 | ...) and new format (| **8** | ...)
+  const boardLines = boardSection.split('\n').filter(line => {
+    return /^\d\s*\|/.test(line) || /^\|\s*\*\*\d+\*\*\s*\|/.test(line)
+  })
   const newBoard = new Array(8).fill(null).map(() => new Array(8).fill(''))
   
   boardLines.forEach(line => {
-    const match = new RegExp(/^(\d)\s*\|(.+)\|\s*\d$/).exec(line)
+    // Try old format first: "8 | ... | 8"
+    let match = /^(\d)\s*\|(.+)\|\s*\d$/.exec(line)
     if (match) {
       const rank = Number.parseInt(match[1])
       const rowIndex = 8 - rank
@@ -176,6 +202,21 @@ const parseBoardState = (boardSection) => {
       
       squares.forEach((symbol, colIndex) => {
         if (symbol && symbol !== ' ' && symbolToPiece[symbol]) {
+          newBoard[rowIndex][colIndex] = symbolToPiece[symbol]
+        }
+      })
+      return
+    }
+    
+    // Try new format: "| **8** | ♜ | ♞ | ... |"
+    match = /^\|\s*\*\*(\d+)\*\*\s*\|(.+)$/.exec(line)
+    if (match) {
+      const rank = Number.parseInt(match[1])
+      const rowIndex = 8 - rank
+      const squares = match[2].split('|').map(s => s.trim())
+      
+      squares.forEach((symbol, colIndex) => {
+        if (colIndex < 8 && symbol && symbolToPiece[symbol]) {
           newBoard[rowIndex][colIndex] = symbolToPiece[symbol]
         }
       })
@@ -230,7 +271,7 @@ export const importMoveHistory = (onImportSuccess) => {
       
       // Extract Play Number from the file
       let playNumber = null
-      const playNumberMatch = content.match(/Play Number:\s*(.+)/)
+      const playNumberMatch = content.match(/Play Number:\*\*\s*(.+)/)
       if (playNumberMatch) {
         playNumber = playNumberMatch[1].trim()
       }
