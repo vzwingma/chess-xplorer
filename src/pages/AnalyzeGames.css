@@ -381,13 +381,14 @@
 .export-btn,
 .import-btn {
   background: var(--gradient-primary);
-  color: white;
+  color: #d84315;
   border: none;
   border-radius: var(--border-radius);
   cursor: pointer;
   font-weight: 500;
   transition: var(--transition-transform);
 }
+
 
 .tool-btn:hover:not(:disabled),
 .export-btn:hover:not(:disabled),
@@ -407,6 +408,21 @@
   font-size: 1rem;
 }
 
+
+.export-btn,
+.import-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  transition: var(--transition-transform), opacity 0.2s ease;
+}
+
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
 .move-history-header {
   display: flex;
   justify-content: space-between;
@@ -423,18 +439,6 @@
 .history-buttons {
   display: flex;
   gap: 0.5rem;
-}
-
-.export-btn,
-.import-btn {
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  transition: var(--transition-transform), opacity 0.2s ease;
-}
-
-.export-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .placeholder {
@@ -492,7 +496,7 @@
   background: var(--gradient-primary);
   border-color: var(--color-secondary);
   box-shadow: 0 3px 10px rgba(244, 168, 62, 0.3);
-  color: #000;
+  color: #d84315 ;
 }
 
 /* Status light indicator for toggle buttons */
