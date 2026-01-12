@@ -146,7 +146,7 @@ const parseCapturedPieces = (content) => {
   lines.forEach(line => {
     if (line.includes('White pieces captured:')) {
       // Extract after the colon and before any closing **
-      const pieces = line.split(':')[1]?.replace(/\*\*/g, '').trim()
+      const pieces = line.split(':')[1]?.replaceAll('**', '').trim()
       if (pieces && pieces !== '' && pieces !== 'None') {
         capturedPieces.white = pieces.split(', ').map(p => {
           p = p.trim()
@@ -156,7 +156,7 @@ const parseCapturedPieces = (content) => {
       }
     } else if (line.includes('Black pieces captured:')) {
       // Extract after the colon and before any closing **
-      const pieces = line.split(':')[1]?.replace(/\*\*/g, '').trim()
+      const pieces = line.split(':')[1]?.replaceAll('**', '').trim()
       if (pieces && pieces !== '' && pieces !== 'None') {
         capturedPieces.black = pieces.split(', ').map(p => {
           p = p.trim()
