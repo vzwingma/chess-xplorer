@@ -80,6 +80,8 @@ function AnalyzeGames() {
     // Generate initial play number: random 8-digit number
     return Math.floor(10000000 + Math.random() * 90000000).toString()
   })
+  const [playerPerspective, setPlayerPerspective] = useState(PLAYER_TURN_WHITE) // Track which side the player is playing (white or black)
+  const [showSideSelectionModal, setShowSideSelectionModal] = useState(false) // Track modal visibility
 
   // Function to generate a new play number
   const generatePlayNumber = () => {
@@ -91,7 +93,8 @@ function AnalyzeGames() {
     return isSquareUnderAttackHelper(row, col, color, boardToCheck, movedPiecesOverride || movedPieces, isLegalMove)
   }
 
-  const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck = board, allowSameColor = false, movedPiecesOverride = null) => {
+  const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck = board, options = {}) => {
+    const { allowSameColor = false, movedPiecesOverride = null } = options
     return isLegalMoveHelper(piece, fromRow, fromCol, toRow, toCol, boardToCheck, { 
       movedPieces: movedPiecesOverride || movedPieces, 
       isSquareUnderAttackFn: (row, col, color, board) => isSquareUnderAttack(row, col, color, board, movedPiecesOverride), 
@@ -105,7 +108,7 @@ function AnalyzeGames() {
 
   const hasLegalMoves = (color, boardToCheck = board, movedPiecesOverride = null) => {
     return hasLegalMovesHelper(color, boardToCheck, movedPiecesOverride || movedPieces, 
-      (piece, fromRow, fromCol, toRow, toCol, board, options) => isLegalMove(piece, fromRow, fromCol, toRow, toCol, board, options?.allowSameColor || false, movedPiecesOverride),
+      (piece, fromRow, fromCol, toRow, toCol, board, helperOptions) => isLegalMove(piece, fromRow, fromCol, toRow, toCol, board, { allowSameColor: helperOptions?.allowSameColor || false, movedPiecesOverride }),
       (color, board) => isKingInCheck(color, board, movedPiecesOverride))
   }
 
@@ -475,6 +478,12 @@ function AnalyzeGames() {
   }
 
   const resetBoard = () => {
+    setShowSideSelectionModal(true)
+  }
+
+  // Handle side selection and reset the board
+  const handleSideSelection = (side) => {
+    setPlayerPerspective(side)
     setBoard(initialBoardState)
     setCurrentTurn(PLAYER_TURN_WHITE)
     setSelectedSquare(null)
@@ -488,6 +497,7 @@ function AnalyzeGames() {
     setCurrentMoveIndex(0)
     setCapturedPieces({ white: [], black: [] })
     setPlayNumber(generatePlayNumber())
+    setShowSideSelectionModal(false)
   }
 
   // Export current game to a text file
@@ -708,6 +718,32 @@ function AnalyzeGames() {
 
   return (
     <div className="analyze-games">
+      {showSideSelectionModal && (
+        <div className="modal-overlay" onClick={() => setShowSideSelectionModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Choose Your Side</h2>
+            <p>Which color do you want to play?</p>
+            <div className="side-selection-buttons">
+              <button 
+                className="side-btn white-btn"
+                onClick={() => handleSideSelection(PLAYER_TURN_WHITE)}
+              >
+                <span className="side-icon">⚪</span>
+                <span className="side-label">Play as White</span>
+                <span className="side-description">White pieces at bottom</span>
+              </button>
+              <button 
+                className="side-btn black-btn"
+                onClick={() => handleSideSelection(PLAYER_TURN_BLACK)}
+              >
+                <span className="side-icon">⚫</span>
+                <span className="side-label">Play as Black</span>
+                <span className="side-description">Black pieces at bottom</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <header className="analyze-header">
         <h1>♞ Analyze Game </h1><h3>#{playNumber}</h3>
         <div className="turn-indicator">
@@ -748,9 +784,25 @@ function AnalyzeGames() {
               </div>
             </div>
             <div className="chess-board" style={{ backgroundImage: `url(${plateauImage})` }}>
-              {board.map((row, rowIndex) => (
-                row.map((piece, colIndex) => renderSquare(piece, rowIndex, colIndex))
-              ))}
+              {(() => {
+                // Create array of squares with their positions
+                const squares = []
+                board.forEach((row, rowIndex) => {
+                  row.forEach((piece, colIndex) => {
+                    squares.push({ piece, rowIndex, colIndex })
+                  })
+                })
+                
+                // Sort squares based on player perspective
+                if (playerPerspective === PLAYER_TURN_BLACK) {
+                  // Reverse the order for black perspective
+                  squares.reverse()
+                }
+                
+                return squares.map(({ piece, rowIndex, colIndex }) => 
+                  renderSquare(piece, rowIndex, colIndex)
+                )
+              })()}
             </div>
           </div>
         </div>
