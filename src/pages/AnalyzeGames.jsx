@@ -631,8 +631,13 @@ function AnalyzeGames() {
       }
     }
     
+    // Check if target piece is protected
+    const isTargetProtected = protectedPieces.some(pp => pp.row === rowIndex && pp.col === colIndex)
+    
     let attackClass = showAttackedFlash ? '' : 'valid-attack '
-    attackClass += validMove.wouldBeAttacked ? 'valid-attack-unsafe' : 'valid-attack-safe'
+    // Attack is unsafe if attacker would be attacked OR if target is protected
+    const isUnsafe = validMove.wouldBeAttacked || isTargetProtected
+    attackClass += isUnsafe ? 'valid-attack-unsafe' : 'valid-attack-safe'
     return attackClass
   }
 

@@ -309,7 +309,7 @@ export const getValidMovesForPiece = (piece, fromRow, fromCol, board, movedPiece
   const color = piece.split('-')[0]
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
-      if (isLegalMoveFn(piece, fromRow, fromCol, row, col, board, { movedPieces, allowSameColor: false })) {
+      if (isLegalMoveFn(piece, fromRow, fromCol, row, col, { boardToCheck: board, movedPieces, allowSameColor: false })) {
         const isAttack = board[row][col] !== ''
         
         // Create a test board with the piece moved to check if it would be under attack
@@ -334,7 +334,7 @@ export const calculateAttackedPieces = (boardState, attackingColor, movedPieces,
       forEachBoardSquare((toRow, toCol) => {
         const targetPiece = boardState[toRow][toCol]
         if (targetPiece && !targetPiece.startsWith(attackingColor)) {
-          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardState, { movedPieces, allowSameColor: false })) {
+          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, { boardToCheck: boardState, movedPieces, allowSameColor: false })) {
             attacked.push({ row: toRow, col: toCol, attackedBy: attackingColor })
           }
         }
@@ -355,7 +355,7 @@ export const calculateDefenders = (targetRow, targetCol, boardState, movedPieces
   forEachBoardSquare((fromRow, fromCol) => {
     const piece = boardState[fromRow][fromCol]
     if (piece?.startsWith(pieceColor) && !(fromRow === targetRow && fromCol === targetCol)) {
-      if (isLegalMoveFn(piece, fromRow, fromCol, targetRow, targetCol, boardState, { movedPieces, allowSameColor: true })) {
+      if (isLegalMoveFn(piece, fromRow, fromCol, targetRow, targetCol, { boardToCheck: boardState, movedPieces, allowSameColor: true })) {
         defenders.push({ row: fromRow, col: fromCol, color: pieceColor })
       }
     }
@@ -376,7 +376,7 @@ export const calculateProtectedPieces = (boardState, protectingColor, movedPiece
         // Check if target is same color and can be defended
         if (targetPiece?.startsWith(protectingColor) && 
             !(fromRow === toRow && fromCol === toCol)) {
-          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, boardState, { movedPieces, allowSameColor: true })) {
+          if (isLegalMoveFn(piece, fromRow, fromCol, toRow, toCol, { boardToCheck: boardState, movedPieces, allowSameColor: true })) {
             const key = `${toRow}-${toCol}`
             const current = protectionMap.get(key) || { row: toRow, col: toCol, defenders: 0, color: protectingColor }
             current.defenders += 1
