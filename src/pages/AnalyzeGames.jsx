@@ -93,7 +93,8 @@ function AnalyzeGames() {
     return isSquareUnderAttackHelper(row, col, color, boardToCheck, movedPiecesOverride || movedPieces, isLegalMove)
   }
 
-  const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck = board, allowSameColor = false, movedPiecesOverride = null) => {
+  const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, options = {}) => {
+    const { boardToCheck = board, allowSameColor = false, movedPiecesOverride = null } = options
     return isLegalMoveHelper(piece, fromRow, fromCol, toRow, toCol, boardToCheck, { 
       movedPieces: movedPiecesOverride || movedPieces, 
       isSquareUnderAttackFn: (row, col, color, board) => isSquareUnderAttack(row, col, color, board, movedPiecesOverride), 
@@ -107,7 +108,7 @@ function AnalyzeGames() {
 
   const hasLegalMoves = (color, boardToCheck = board, movedPiecesOverride = null) => {
     return hasLegalMovesHelper(color, boardToCheck, movedPiecesOverride || movedPieces, 
-      (piece, fromRow, fromCol, toRow, toCol, board, options) => isLegalMove(piece, fromRow, fromCol, toRow, toCol, board, options?.allowSameColor || false, movedPiecesOverride),
+      (piece, fromRow, fromCol, toRow, toCol, board, options) => isLegalMove(piece, fromRow, fromCol, toRow, toCol, { boardToCheck: board, allowSameColor: options?.allowSameColor || false, movedPiecesOverride }),
       (color, board) => isKingInCheck(color, board, movedPiecesOverride))
   }
 
@@ -178,7 +179,7 @@ function AnalyzeGames() {
       forEachBoardSquare((toRow, toCol) => {
         const targetPiece = board[toRow][toCol]
         if (targetPiece && !targetPiece.startsWith(color)) {
-          if (isLegalMove(piece, row, col, toRow, toCol, board)) {
+          if (isLegalMove(piece, row, col, toRow, toCol, { boardToCheck: board })) {
             attacked.push({ row: toRow, col: toCol, color: targetPiece.split('-')[0] })
           }
         }
@@ -370,7 +371,7 @@ function AnalyzeGames() {
     const { row: fromRow, col: fromCol } = selectedSquare
     const piece = board[fromRow][fromCol]
 
-    if (isLegalMove(piece, fromRow, fromCol, toRow, toCol)) {
+    if (isLegalMove(piece, fromRow, fromCol, toRow, toCol, {})) {
       executeMove(piece, fromRow, fromCol, toRow, toCol)
     }
   }
@@ -408,7 +409,7 @@ function AnalyzeGames() {
     
     const { row: fromRow, col: fromCol } = draggedFrom
     
-    if (isLegalMove(draggedPiece, fromRow, fromCol, toRow, toCol)) {
+    if (isLegalMove(draggedPiece, fromRow, fromCol, toRow, toCol, {})) {
       executeMove(draggedPiece, fromRow, fromCol, toRow, toCol)
     }
     
