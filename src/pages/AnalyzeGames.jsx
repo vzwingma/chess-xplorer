@@ -87,28 +87,32 @@ function AnalyzeGames() {
   }
 
   // Wrapper functions for helpers that need access to component state
-  const isSquareUnderAttack = (row, col, color, boardToCheck = board) => {
-    return isSquareUnderAttackHelper(row, col, color, boardToCheck, movedPieces, isLegalMove)
+  const isSquareUnderAttack = (row, col, color, boardToCheck = board, movedPiecesOverride = null) => {
+    return isSquareUnderAttackHelper(row, col, color, boardToCheck, movedPiecesOverride || movedPieces, isLegalMove)
   }
 
-  const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck = board, allowSameColor = false) => {
+  const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck = board, allowSameColor = false, movedPiecesOverride = null) => {
     return isLegalMoveHelper(piece, fromRow, fromCol, toRow, toCol, boardToCheck, { 
-      movedPieces, 
-      isSquareUnderAttackFn: isSquareUnderAttack, 
+      movedPieces: movedPiecesOverride || movedPieces, 
+      isSquareUnderAttackFn: (row, col, color, board) => isSquareUnderAttack(row, col, color, board, movedPiecesOverride), 
       allowSameColor 
     })
   }
 
-  const isKingInCheck = (color, boardToCheck = board) => {
-    return isKingInCheckHelper(color, boardToCheck, movedPieces, isSquareUnderAttack)
+  const isKingInCheck = (color, boardToCheck = board, movedPiecesOverride = null) => {
+    return isKingInCheckHelper(color, boardToCheck, movedPiecesOverride || movedPieces, (row, col, color, board) => isSquareUnderAttack(row, col, color, board, movedPiecesOverride))
   }
 
-  const hasLegalMoves = (color, boardToCheck = board) => {
-    return hasLegalMovesHelper(color, boardToCheck, movedPieces, isLegalMove, isKingInCheck)
+  const hasLegalMoves = (color, boardToCheck = board, movedPiecesOverride = null) => {
+    return hasLegalMovesHelper(color, boardToCheck, movedPiecesOverride || movedPieces, 
+      (piece, fromRow, fromCol, toRow, toCol, board, options) => isLegalMove(piece, fromRow, fromCol, toRow, toCol, board, options?.allowSameColor || false, movedPiecesOverride),
+      (color, board) => isKingInCheck(color, board, movedPiecesOverride))
   }
 
-  const isCheckmate = (color, boardToCheck = board) => {
-    return isCheckmateHelper(color, boardToCheck, movedPieces, isKingInCheck, hasLegalMoves)
+  const isCheckmate = (color, boardToCheck = board, movedPiecesOverride = null) => {
+    return isCheckmateHelper(color, boardToCheck, movedPiecesOverride || movedPieces, 
+      (color, board) => isKingInCheck(color, board, movedPiecesOverride),
+      (color, board) => hasLegalMoves(color, board, movedPiecesOverride))
   }
 
   const getValidMovesForPiece = (piece, fromRow, fromCol) => {
@@ -238,7 +242,7 @@ function AnalyzeGames() {
     const newHistory = [...truncatedHistory, { moveNumber, text: moveText, color: currentTurn, boardState: newBoard.map(row => [...row]), movedPiecesState: new Set(newMovedPieces), capturedPiecesState: { ...capturedPieces } }]
     setMoveHistory(newHistory)
     setCurrentMoveIndex(newHistory.length - 1)
-    setKingInCheck(isKingInCheck(newTurn, newBoard) ? newTurn : null)
+    setKingInCheck(isKingInCheck(newTurn, newBoard, newMovedPieces) ? newTurn : null)
   }
 
   // Execute a move and update game state (shared logic for click and drag-drop)
@@ -285,7 +289,7 @@ function AnalyzeGames() {
       moveText = `${color} ${pieceName} ${from}${capture}${to}`
     }
     
-    if (isCheckmate(newTurn, newBoard)) {
+    if (isCheckmate(newTurn, newBoard, newMovedPieces)) {
       setCheckmate(newTurn)
       setKingInCheck(newTurn)
       updateHistoryWithCheckmate(truncatedHistory, moveNumber, moveText, newBoard, newMovedPieces)
