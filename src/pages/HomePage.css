@@ -21,6 +21,13 @@
   color: var(--color-text-muted);
 }
 
+.version {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-top: 0.5rem;
+  opacity: 0.7;
+}
+
 .main-content {
   max-width: 1000px;
   margin: 0 auto;

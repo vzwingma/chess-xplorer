@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import './HomePage.css'
+import packageJson from '../../package.json'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -7,7 +8,7 @@ function HomePage() {
   return (
     <div className="home-page">
       <header className="header">
-        <h1>♟️ Chess Xplorer</h1>
+        <h1>♟️ Chess Xplorer</h1><p className="version">v{packageJson.version}</p>
         <p className="tagline">Explore the world of Chess</p>
       </header>
       
