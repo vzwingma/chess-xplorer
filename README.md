@@ -227,4 +227,4 @@ Le projet est fonctionnel avec toutes les fonctionnalités de base des échecs i
 Développé avec ❤️ pour les passionnés d'échecs
 
 Entièrement développé en mode Agent avec Claude Sonnet 4.5
-![Claude Sonnet 4.5](public/sonnet.pngsonnet.png)
+![Claude Sonnet 4.5](public/sonnet.png)
