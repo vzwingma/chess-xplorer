@@ -80,8 +80,8 @@ function AnalyzeGames() {
     // Generate initial play number: random 8-digit number
     return Math.floor(10000000 + Math.random() * 90000000).toString()
   })
-  const [playerPerspective, setPlayerPerspective] = useState(PLAYER_TURN_WHITE) // Track which side the player is playing (white or black)
-  const [showSideSelectionModal, setShowSideSelectionModal] = useState(false) // Track modal visibility
+  const [playerColor, setPlayerColor] = useState('white') // Track which color the player is playing
+  const [showColorSelection, setShowColorSelection] = useState(true) // Show color selection popup
 
   // Function to generate a new play number
   const generatePlayNumber = () => {
@@ -93,8 +93,7 @@ function AnalyzeGames() {
     return isSquareUnderAttackHelper(row, col, color, boardToCheck, movedPiecesOverride || movedPieces, isLegalMove)
   }
 
-  const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck = board, options = {}) => {
-    const { allowSameColor = false, movedPiecesOverride = null } = options
+  const isLegalMove = (piece, fromRow, fromCol, toRow, toCol, boardToCheck = board, allowSameColor = false, movedPiecesOverride = null) => {
     return isLegalMoveHelper(piece, fromRow, fromCol, toRow, toCol, boardToCheck, { 
       movedPieces: movedPiecesOverride || movedPieces, 
       isSquareUnderAttackFn: (row, col, color, board) => isSquareUnderAttack(row, col, color, board, movedPiecesOverride), 
@@ -108,7 +107,7 @@ function AnalyzeGames() {
 
   const hasLegalMoves = (color, boardToCheck = board, movedPiecesOverride = null) => {
     return hasLegalMovesHelper(color, boardToCheck, movedPiecesOverride || movedPieces, 
-      (piece, fromRow, fromCol, toRow, toCol, board, helperOptions) => isLegalMove(piece, fromRow, fromCol, toRow, toCol, board, { allowSameColor: helperOptions?.allowSameColor || false, movedPiecesOverride }),
+      (piece, fromRow, fromCol, toRow, toCol, board, options) => isLegalMove(piece, fromRow, fromCol, toRow, toCol, board, options?.allowSameColor || false, movedPiecesOverride),
       (color, board) => isKingInCheck(color, board, movedPiecesOverride))
   }
 
@@ -478,12 +477,11 @@ function AnalyzeGames() {
   }
 
   const resetBoard = () => {
-    setShowSideSelectionModal(true)
+    setShowColorSelection(true)
   }
 
-  // Handle side selection and reset the board
-  const handleSideSelection = (side) => {
-    setPlayerPerspective(side)
+  const handleColorSelection = (selectedColor) => {
+    setPlayerColor(selectedColor)
     setBoard(initialBoardState)
     setCurrentTurn(PLAYER_TURN_WHITE)
     setSelectedSquare(null)
@@ -497,7 +495,7 @@ function AnalyzeGames() {
     setCurrentMoveIndex(0)
     setCapturedPieces({ white: [], black: [] })
     setPlayNumber(generatePlayNumber())
-    setShowSideSelectionModal(false)
+    setShowColorSelection(false)
   }
 
   // Export current game to a text file
@@ -716,29 +714,47 @@ function AnalyzeGames() {
     )
   }
 
+  // Helper function to get the board to render (flipped if playing as black)
+  const getBoardToRender = () => {
+    if (playerColor === 'black') {
+      // Flip the board: reverse rows and reverse each row
+      return board.slice().reverse().map(row => row.slice().reverse())
+    }
+    return board
+  }
+
+  // Helper function to convert display coordinates to actual board coordinates
+  const getActualCoordinates = (displayRow, displayCol) => {
+    if (playerColor === 'black') {
+      return {
+        row: 7 - displayRow,
+        col: 7 - displayCol
+      }
+    }
+    return { row: displayRow, col: displayCol }
+  }
+
   return (
     <div className="analyze-games">
-      {showSideSelectionModal && (
-        <div className="modal-overlay" onClick={() => setShowSideSelectionModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Choose Your Side</h2>
-            <p>Which color do you want to play?</p>
-            <div className="side-selection-buttons">
+      {showColorSelection && (
+        <div className="color-selection-overlay">
+          <div className="color-selection-modal">
+            <h2>Choose your Side</h2>
+            <p>Select which side you want to play</p>
+            <div className="color-buttons">
               <button 
-                className="side-btn white-btn"
-                onClick={() => handleSideSelection(PLAYER_TURN_WHITE)}
+                className="color-btn white-btn"
+                onClick={() => handleColorSelection('white')}
               >
-                <span className="side-icon">⚪</span>
-                <span className="side-label">Play as White</span>
-                <span className="side-description">White pieces at bottom</span>
+                <span className="color-icon">⚪</span>
+                <span className="color-label">Play as White</span>
               </button>
               <button 
-                className="side-btn black-btn"
-                onClick={() => handleSideSelection(PLAYER_TURN_BLACK)}
+                className="color-btn black-btn"
+                onClick={() => handleColorSelection('black')}
               >
-                <span className="side-icon">⚫</span>
-                <span className="side-label">Play as Black</span>
-                <span className="side-description">Black pieces at bottom</span>
+                <span className="color-icon">⚫</span>
+                <span className="color-label">Play as Black</span>
               </button>
             </div>
           </div>
@@ -784,25 +800,12 @@ function AnalyzeGames() {
               </div>
             </div>
             <div className="chess-board" style={{ backgroundImage: `url(${plateauImage})` }}>
-              {(() => {
-                // Create array of squares with their positions
-                const squares = []
-                board.forEach((row, rowIndex) => {
-                  row.forEach((piece, colIndex) => {
-                    squares.push({ piece, rowIndex, colIndex })
-                  })
+              {getBoardToRender().map((row, displayRowIndex) => (
+                row.map((piece, displayColIndex) => {
+                  const { row: actualRow, col: actualCol } = getActualCoordinates(displayRowIndex, displayColIndex)
+                  return renderSquare(piece, actualRow, actualCol)
                 })
-                
-                // Sort squares based on player perspective
-                if (playerPerspective === PLAYER_TURN_BLACK) {
-                  // Reverse the order for black perspective
-                  squares.reverse()
-                }
-                
-                return squares.map(({ piece, rowIndex, colIndex }) => 
-                  renderSquare(piece, rowIndex, colIndex)
-                )
-              })()}
+              ))}
             </div>
           </div>
         </div>
