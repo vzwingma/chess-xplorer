@@ -223,7 +223,7 @@ export const isSquareUnderAttack = (row, col, color, boardToCheck, movedPieces, 
   forEachBoardSquare((r, c) => {
     const piece = boardToCheck[r][c]
     if (piece?.startsWith(opponentColor)) {
-      if (isLegalMoveFn(piece, r, c, row, col, boardToCheck, { movedPieces, allowSameColor: false })) {
+      if (isLegalMoveFn(piece, r, c, row, col, { boardToCheck, movedPieces, allowSameColor: false })) {
         isAttacked = true
         return false // Stop iteration
       }
